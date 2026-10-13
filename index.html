@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV Builder</title>
+  <meta name="description" content="Build a one-page CV where every bullet fills its line to the brim — live line-density meter, A4 preview and PDF export.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f172a'/><rect x='8' y='9' width='16' height='2.4' fill='white'/><rect x='8' y='15' width='16' height='2.4' fill='%2310b981'/><rect x='8' y='21' width='11' height='2.4' fill='white'/></svg>">
+
+  <!-- Fonts: EB Garamond for the CV itself, Inter for the app controls -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/cv.css">
+</head>
+<body>
+  <!-- ===== Top bar: title, live stats and main actions ===== -->
+  <header class="topbar no-print">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><i></i><i class="g"></i><i class="s"></i></div>
+      <div>
+        <h1>CV Builder</h1>
+        <p>Every bullet, one line, filled to the brim</p>
+      </div>
+    </div>
+
+    <div class="stats" id="stats" aria-live="polite"></div>
+
+    <div class="actions">
+      <label class="toggle" title="Colour each bullet in the preview by how full it is">
+        <input type="checkbox" id="toggle-highlights" checked>
+        <span>Highlights</span>
+      </label>
+      <label class="btn" title="Load a CV you exported earlier">
+        Import
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </label>
+      <button class="btn" id="btn-export" title="Save your CV data as a .json file">Export</button>
+      <button class="btn" id="btn-reset" title="Replace everything with the sample CV">Reset</button>
+      <button class="btn primary" id="btn-print" title="Opens the print dialog — choose “Save as PDF”">Download PDF</button>
+    </div>
+  </header>
+
+  <div class="banner no-print" id="banner" hidden></div>
+
+  <main class="layout">
+    <!-- ===== Left: the editor (built by js/editor.js) ===== -->
+    <aside class="editor no-print" id="editor" aria-label="CV editor"></aside>
+
+    <!-- ===== Right: live A4 preview (built by js/preview.js) ===== -->
+    <section class="preview-pane" id="preview-pane" aria-label="CV preview">
+      <div class="preview-toolbar no-print">
+        <div class="legend">
+          <span><i class="dot brim"></i>Brim 98–100%</span>
+          <span><i class="dot under"></i>Underfilled</span>
+          <span><i class="dot over"></i>Spills over</span>
+        </div>
+        <div id="page-status" class="page-status"></div>
+      </div>
+      <div class="cv-scaler" id="cv-scaler">
+        <div class="cv-page hl" id="cv-page"></div>
+      </div>
+      <p class="preview-hint no-print">Click any bullet in the preview to edit it. Tip: in the print dialog pick <b>Save as PDF</b> and turn off <b>Headers and footers</b>.</p>
+    </section>
+  </main>
+
+  <!-- Scripts: order matters (each file uses the ones above it) -->
+  <script src="js/measure.js"></script>
+  <script src="js/sample.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
