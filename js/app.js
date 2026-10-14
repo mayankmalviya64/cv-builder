@@ -274,6 +274,43 @@ window.addEventListener('resize', fitPreview);
 // Re-check the page height once images (the logo) finish loading.
 els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true);
 
+// ---------- "new version available" notice ----------
+// A tab that stays open keeps running the code it loaded, even after the site is
+// updated (that once made correct lines show as "too long"). So now and then we
+// fetch the live index.html, read its ?v= version tag, and compare it with ours.
+
+// Our own version tag, read from this script's URL ("js/app.js?v=20261014k").
+const MY_VERSION = (document.currentScript?.src.match(/[?&]v=([\w.-]+)/) || [])[1] || '';
+const UPDATE_CHECK_MS = 5 * 60 * 1000;   // at most one check every 5 minutes
+let lastUpdateCheck = 0;
+
+async function checkForUpdate() {
+  // Skip when opened as a local file, or when we already showed the notice.
+  if (!MY_VERSION || location.protocol === 'file:') return;
+  if (!document.getElementById('update-banner').hidden) return;
+  if (Date.now() - lastUpdateCheck < UPDATE_CHECK_MS) return;
+  lastUpdateCheck = Date.now();
+  try {
+    // cache: 'no-store' = ask the server, never the browser's cached copy.
+    const res = await fetch('index.html', { cache: 'no-store' });
+    if (!res.ok) return;
+    const live = ((await res.text()).match(/js\/app\.js\?v=([\w.-]+)/) || [])[1];
+    if (live && live !== MY_VERSION) document.getElementById('update-banner').hidden = false;
+  } catch (err) {
+    // Offline or blocked: no notice, try again later.
+  }
+}
+
+document.getElementById('update-reload').addEventListener('click', () => {
+  clearTimeout(saveTimer);
+  saveCv(cv);              // save right now (autosave waits 300ms) so nothing is lost
+  location.reload();
+});
+// Check when you come back to the tab, and every few minutes while it's open.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+setInterval(checkForUpdate, UPDATE_CHECK_MS);
+checkForUpdate();
+
 // ---------- start ----------
 Editor.mount(els.editor, () => cv, handleChange);
 renderPreview();
