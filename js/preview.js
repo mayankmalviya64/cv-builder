@@ -59,9 +59,12 @@ function bulletHtml(bullet, path, capacityPt, showYear) {
 
 /** A category block: label on the left, its bullets on the right. */
 function groupHtml(group, path, showYear) {
+  // Unticked category, or every bullet in it unticked → leave the whole block out.
+  if (!isIncluded(group)) return '';
+  if (group.bullets.length && !group.bullets.some(isIncluded)) return '';
   const capacityPt = bulletCapacityPt(true, showYear);
   const rows = group.bullets
-    .map((b, i) => bulletHtml(b, `${path}.bullets.${i}`, capacityPt, showYear))
+    .map((b, i) => (isIncluded(b) ? bulletHtml(b, `${path}.bullets.${i}`, capacityPt, showYear) : '')) // skip unticked bullets
     .join('');
   return `
     <div class="cv-group${showYear ? ' has-year' : ''}">
@@ -85,6 +88,7 @@ function academicHtml(section) {
 
 function experienceHtml(section, sIndex) {
   return section.entries.map((entry, eIndex) => {
+    if (!isIncluded(entry)) return ''; // unticked entry → not on the CV
     const path = `sections.${sIndex}.entries.${eIndex}`;
     // The "Company | Role | Dates" line only appears if something is filled in.
     const headLine = (entry.org || entry.role || entry.dates)
@@ -112,6 +116,7 @@ function renderCvHtml(cv) {
   const logo = p.logo ? `<img class="cv-logo" src="${escapeHtml(p.logo)}" alt="">` : '';
 
   const sections = cv.sections.map((section, sIndex) => {
+    if (!isIncluded(section)) return ''; // unticked section → not on the CV
     let body = '';
     if (section.type === 'academic') body = academicHtml(section);
     else if (section.type === 'experience') body = experienceHtml(section, sIndex);

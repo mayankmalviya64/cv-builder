@@ -212,7 +212,11 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
       const gap = prev ? p.x - (prev.x + prev.w) : 0;
       if (!p.str.trim()) {
         // A real space character: keep it (bold or not) inside the current segment.
-        if (seg && gap < p.size) { seg.runs.push({ text: ' ', bold: p.bold }); seg.x1 = p.x + p.w; prev = p; }
+        // Its WIDTH says if it's bold (0.237 of the font size) or regular (0.200).
+        // Don't trust its font: the PDF reader often labels a space with the font
+        // of the word before it, so "**bold** word" would wrongly get a bold space.
+        const spaceBold = p.eb ? Math.abs(p.w - p.size * 0.237) < Math.abs(p.w - p.size * 0.2) : p.bold;
+        if (seg && gap < p.size) { seg.runs.push({ text: ' ', bold: spaceBold }); seg.x1 = p.x + p.w; prev = p; }
         continue;
       }
       if (!seg || gap > Math.max(prev.size, p.size) * 0.6) {

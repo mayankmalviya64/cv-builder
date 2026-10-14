@@ -306,6 +306,34 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .small-note { margin: 0; font-size: 12px; }
 
+/* ☑ Include tick marks: ticked = on the CV, unticked = kept here but left off the CV */
+.inc { display: inline-flex; align-items: center; flex: none; cursor: pointer; padding: 2px; }
+.inc input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--brim); }
+.bl-row > .inc { padding-top: 6px; }
+.group-head > .inc { align-self: center; }
+.entry-name { display: inline-flex; align-items: center; gap: 6px; }
+/* Greyed out when unticked (the tick box itself stays fully visible so it's easy to re-tick) */
+.excluded > :not(summary):not(.bl-row):not(.group-head):not(.entry-head),
+.excluded > summary > :not(.inc),
+.excluded > .bl-row > :not(.inc),
+.excluded > .group-head > :not(.inc),
+.excluded > .entry-head > * > :not(.inc) { opacity: 0.4; }
+.excluded .bl-text, .excluded .group-head textarea { text-decoration: line-through; text-decoration-color: rgba(15, 23, 42, 0.35); }
+
+/* Import button: green call-to-action. While the sample CV is on screen it pulses
+   so new visitors know to start by importing their own CV. */
+.btn.import-cta { background: var(--brim); border-color: var(--brim); color: #fff; }
+.btn.import-cta:hover { background: #047857; border-color: #047857; }
+.btn.import-cta.pulse { animation: cta-pulse 1.8s ease-out infinite; }
+@keyframes cta-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(5, 150, 105, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .btn.import-cta.pulse { animation: none; } }
+.banner.cta { background: var(--brim-bg); color: #065f46; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.banner.cta .btn { height: 28px; }
+
 /* Undo / redo buttons in the top bar */
 .btn.icon { padding: 0 10px; font-size: 17px; }
 .btn:disabled { opacity: 0.4; cursor: default; }

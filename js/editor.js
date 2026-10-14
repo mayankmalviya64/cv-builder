@@ -42,6 +42,19 @@ const Editor = (() => {
       + iconBtn('remove', path, '✕', `Remove ${what}`, 'data-danger');
   }
 
+  /**
+   * ☑ Include tick mark. Ticked = printed on the CV. Unticked = kept here in
+   * the editor (greyed out) but left off the CV, so you can bring it back later.
+   */
+  function includeBox(path, item, what) {
+    const on = isIncluded(item);
+    const tip = on ? `On the CV — untick to leave this ${what} out (it stays here)` : `Left out of the CV — tick to put this ${what} back`;
+    return `<label class="inc" title="${tip}"><input type="checkbox" data-include="${path}" ${on ? 'checked' : ''} aria-label="Include this ${what} on the CV"></label>`;
+  }
+
+  /** Extra class for an unticked item, so it shows greyed out. */
+  const offClass = item => (isIncluded(item) ? '' : ' excluded');
+
   // ---------- which width does a bullet get? ----------
   /** The line capacity (pt) for the bullet at this path. */
   function capacityForPath(path) {
@@ -57,9 +70,9 @@ const Editor = (() => {
       ? `<input type="text" class="bl-year" data-bind="${path}.year" value="${esc(bullet.year)}" placeholder="Year" aria-label="Year">`
       : '';
     return `
-      <div class="bl" data-path="${path}" data-item="${path}">
+      <div class="bl${offClass(bullet)}" data-path="${path}" data-item="${path}">
         <div class="bl-row">
-          <span class="bl-mark">▪</span>
+          ${includeBox(path, bullet, 'bullet')}
           <textarea class="bl-text" data-bind="${path}.text" data-kind="bullet" rows="1" spellcheck="true"
             placeholder="Action verb + what you did + measurable result">${esc(bullet.text)}</textarea>
           ${year}
@@ -106,8 +119,9 @@ const Editor = (() => {
   function groupHtml(group, path, withYear) {
     const bullets = group.bullets.map((b, i) => bulletHtml(b, `${path}.bullets.${i}`, withYear)).join('');
     return `
-      <div class="group" data-item="${path}">
+      <div class="group${offClass(group)}" data-item="${path}">
         <div class="group-head">
+          ${includeBox(path, group, 'category')}
           ${field('Category', `${path}.label`, group.label, { multiline: true, rows: 2, cls: 'grow', placeholder: 'e.g. Achievements' })}
           <div class="row-actions">${moveRemove(path, 'category')}</div>
         </div>
@@ -137,9 +151,9 @@ const Editor = (() => {
       const ePath = `${sPath}.entries.${e}`;
       const groups = entry.groups.map((g, gi) => groupHtml(g, `${ePath}.groups.${gi}`, false)).join('');
       return `
-        <div class="entry" data-item="${ePath}">
+        <div class="entry${offClass(entry)}" data-item="${ePath}">
           <div class="entry-head">
-            <strong>Entry ${e + 1}</strong>
+            <span class="entry-name">${includeBox(ePath, entry, 'entry')}<strong>Entry ${e + 1}</strong></span>
             <div class="row-actions">${moveRemove(ePath, 'entry')}</div>
           </div>
           <div class="grid-3">
@@ -192,9 +206,10 @@ const Editor = (() => {
     }
     const counts = section.type === 'academic' ? '' : `<span class="counts" data-counts="${sIndex}">${sectionCounts(sIndex)}</span>`;
     return `
-      <details class="card" data-sec="${sIndex}" data-item="${sPath}" ${closed.has(section) ? '' : 'open'}>
+      <details class="card${offClass(section)}" data-sec="${sIndex}" data-item="${sPath}" ${closed.has(section) ? '' : 'open'}>
         <summary>
           <span class="chev" aria-hidden="true"></span>
+          ${includeBox(sPath, section, 'section')}
           <span class="sum-title">${esc(section.title) || 'Untitled'}</span>
           <span class="badge">${TYPE_NAMES[section.type]}</span>
           ${counts}
@@ -400,6 +415,15 @@ const Editor = (() => {
 
   function handleChange(event) {
     const el = event.target;
+    // ☑ Include tick mark: unticked → hidden: true (left off the CV, kept in the editor).
+    if (el.dataset.include) {
+      const item = getAt(getCv(), el.dataset.include);
+      if (el.checked) delete item.hidden;
+      else item.hidden = true;
+      render();
+      onChange('structure');
+      return;
+    }
     // Year-column checkbox: bullets change width and gain/lose a year box.
     if (el.type === 'checkbox' && el.dataset.bind) {
       setAt(getCv(), el.dataset.bind, el.checked);
@@ -762,13 +786,16 @@ const Editor = (() => {
  * callback(bullet, path, capacityPt) — used for the stats and section counts.
  */
 function forEachBullet(cv, callback) {
+  // Unticked (excluded) items aren't printed, so they're skipped here too:
+  // the fit score and section counts only describe what's on the CV.
   cv.sections.forEach((section, s) => {
+    if (!isIncluded(section)) return;
     if (section.type === 'experience') {
-      section.entries.forEach((entry, e) => entry.groups.forEach((group, g) => group.bullets.forEach((bullet, b) =>
-        callback(bullet, `sections.${s}.entries.${e}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, false)))));
+      section.entries.forEach((entry, e) => isIncluded(entry) && entry.groups.forEach((group, g) => isIncluded(group) && group.bullets.forEach((bullet, b) =>
+        isIncluded(bullet) && callback(bullet, `sections.${s}.entries.${e}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, false)))));
     } else if (section.type === 'categorized') {
-      section.groups.forEach((group, g) => group.bullets.forEach((bullet, b) =>
-        callback(bullet, `sections.${s}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, !!section.showYear))));
+      section.groups.forEach((group, g) => isIncluded(group) && group.bullets.forEach((bullet, b) =>
+        isIncluded(bullet) && callback(bullet, `sections.${s}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, !!section.showYear))));
     }
   });
 }

@@ -19,6 +19,7 @@ const els = {
   highlights: document.getElementById('toggle-highlights'),
   undo: document.getElementById('btn-undo'),
   redo: document.getElementById('btn-redo'),
+  importBtn: document.getElementById('btn-import'),
 };
 
 const PAGE_HEIGHT_PX = LAYOUT.pageHeightPt * PX_PER_PT;
@@ -42,6 +43,25 @@ function renderPreview() {
   updatePageFit();
   updateStats();
   fitPreview();
+  updateImportPrompt();
+}
+
+// ---------- "Import your CV" prompt ----------
+// While the untouched sample CV is on screen (a new visitor, or after Reset),
+// the Import button pulses and a green banner asks them to import their own PDF.
+const SAMPLE_JSON = JSON.stringify(SAMPLE_CV);
+
+function updateImportPrompt() {
+  const showingSample = JSON.stringify(cv) === SAMPLE_JSON;
+  els.importBtn.classList.toggle('pulse', showingSample);
+  if (showingSample && els.banner.hidden) {
+    els.banner.className = 'banner no-print cta';
+    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) and every section fills in for you.</span>'
+      + '<label class="btn small import-cta" for="import-file">⬆ Import your CV (PDF)</label>';
+    els.banner.hidden = false;
+  } else if (!showingSample && els.banner.classList.contains('cta')) {
+    showBanner(''); // they've started editing or imported: hide the prompt
+  }
 }
 
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */

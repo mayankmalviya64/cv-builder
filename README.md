@@ -18,6 +18,8 @@ Build a one-page A4 CV where **every bullet fills exactly one line, to the brim*
 - **Page-fit check:** warns, and draws a red line, when content runs past one A4 page.
 - **Download PDF** through the browser's print dialog ("Save as PDF").
 - **Import a CV PDF**: your Skynet PDF (or any CV PDF, best effort) is read back into the editor. That includes name, headline, academic table, companies/projects with role, dates, title and duration, categories, bullets with bold/italic kept exactly, years, and the footer link. Sections that aren't in our template still come through. Tested on 15 real CVs, including 2-page ones.
+- **Include / exclude tick marks** ☑ on every section, entry, category and bullet. Untick to leave it off the CV (and out of the fit counts) without deleting it; tick it again to bring it back.
+- **New visitors are asked to import their CV**: while the sample CV is on screen, the green "Import your CV (PDF)" button pulses and a banner asks for the PDF.
 - **Undo / redo everything**: ⌘Z / Ctrl+Z and ⌘⇧Z / Ctrl+Y, or the ↶ ↷ buttons. Typing, adding, deleting, dragging, pasting and even a whole import can be undone.
 - **Paste from Google Docs / Sheets / Word** keeps **bold** and _italic_ only (no fonts, sizes or colours). Several pasted lines or sheet rows become several bullets.
 - **Autosave** in your browser, plus **Export/Import** as a `.json` file. A `.json` from an older version or with odd sections is repaired instead of rejected.

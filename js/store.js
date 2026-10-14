@@ -51,18 +51,33 @@ function isValidCv(cv) {
 const str = v => (v == null ? '' : String(v));
 const list = v => (Array.isArray(v) ? v : v == null ? [] : [v]);
 
+/**
+ * Include / exclude tick marks: an unticked item gets `hidden: true`.
+ * It stays in the editor but is left out of the printed CV.
+ * keepHidden() copies that flag onto a repaired item (only when it's set).
+ */
+function keepHidden(from, to) {
+  if (from && typeof from === 'object' && from.hidden) to.hidden = true;
+  return to;
+}
+
+/** Is this item ticked (shown on the CV)? */
+function isIncluded(item) {
+  return !(item && item.hidden);
+}
+
 function normalizeBullet(b, withYear) {
   const bullet = typeof b === 'string' ? { text: b } : { text: str(b && (b.text ?? b.bullet ?? b.content)) };
   if (withYear) bullet.year = str(b && typeof b === 'object' ? b.year : '');
-  return bullet;
+  return keepHidden(b, bullet);
 }
 
 function normalizeGroup(g, withYear) {
   if (typeof g === 'string' || (g && !g.bullets && g.text)) g = { label: '', bullets: [g] }; // a bare bullet
-  return {
+  return keepHidden(g, {
     label: str(g && (g.label ?? g.category ?? g.name)),
     bullets: list(g && (g.bullets ?? g.items ?? g.points)).map(b => normalizeBullet(b, withYear)),
-  };
+  });
 }
 
 /** Pick a section type from its contents when the type is missing or unknown. */
@@ -75,6 +90,10 @@ function guessType(sec) {
 
 function normalizeSection(sec) {
   sec = sec && typeof sec === 'object' ? sec : {};
+  return keepHidden(sec, normalizeSectionBody(sec));
+}
+
+function normalizeSectionBody(sec) {
   const type = guessType(sec);
   const title = str(sec.title ?? sec.name ?? sec.heading) || 'Section';
   if (type === 'academic') {
@@ -92,11 +111,11 @@ function normalizeSection(sec) {
       e = e && typeof e === 'object' ? e : {};
       // Bullets sitting straight on the entry (no categories) → one unnamed category.
       const groups = e.groups ? list(e.groups) : e.bullets ? [{ label: '', bullets: e.bullets }] : [];
-      return {
+      return keepHidden(e, {
         org: str(e.org ?? e.company ?? e.organisation), role: str(e.role ?? e.position), dates: str(e.dates ?? e.date),
         subtitle: str(e.subtitle ?? e.title), duration: str(e.duration),
         groups: groups.map(g => normalizeGroup(g, false)),
-      };
+      });
     });
     return { type, title, note: str(sec.note), entries };
   }
