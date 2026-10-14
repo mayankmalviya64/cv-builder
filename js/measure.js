@@ -3,12 +3,14 @@
    ---------------------------------------------------------------------
    Works out how much of one printed CV line a bullet fills.
 
-   How it works (same idea as the CV Line-Density & Brim Checker):
-   1. Draw nothing, but ask an invisible <canvas> how wide each word
-      would be in EB Garamond at 9.75pt (13px).
-   2. Add the word widths up and wrap them onto lines, the way the
-      browser will when it prints the CV.
-   3. Compare against the "capacity" (usable width) of the bullet column.
+   How it works — benchmarked against real Skynet (IIM Mumbai) PDFs:
+   1. Skynet's PDF engine (iText) measures a line by adding up each
+      character's width from the EB Garamond font file. No kerning,
+      no ligatures. We do exactly the same, using the width table in
+      js/metrics.js, so our numbers match the Skynet PDF to ±0.01pt.
+   2. Wrap the words onto lines the same greedy way iText does.
+   3. Compare against the "capacity" (usable width) of the bullet column,
+      also measured from Skynet PDFs.
 
    A bullet is at the "brim" when it fills 98%–100% of one line.
    ===================================================================== */
@@ -21,10 +23,16 @@ const PX_PER_PT = 4 / 3; // browsers draw 96px per inch, 72pt per inch
 const LAYOUT = {
   pageWidthPt: 595.28,   // A4 width
   pageHeightPt: 841.89,  // A4 height
-  tableWidthPt: 540,     // printable width of every section box
-  categoryWidthPt: 83,   // left "Roles & Responsibilities" column
-  yearWidthPt: 30,       // right year column (POR / Awards)
-  bulletGutterPt: 7.75,  // space taken by the ▪ marker + its padding
+  // Everything below is measured from Skynet-generated CV PDFs.
+  boxLeftPt: 21.75,      // left edge of every section box (outer border)
+  boxInnerWidthPt: 550,  // width inside the 0.75pt side borders
+  borderPt: 0.75,        // every table line is 0.75pt thick
+  categoryWidthPt: 82.125, // grey "Roles & Responsibilities" column (border not included)
+  bulletIndentPt: 12,    // from the category border to the first letter (■ sits in here)
+  markerOffsetPt: 4.65,  // from the category border to the ■ marker
+  rightPadPt: 3,         // gap between the text and the right border (no-year rows)
+  yearWidthPt: 31.5,     // year column (border not included)
+  yearGapPt: 1.375,      // gap between the text and the year column's border
 };
 
 // The "brim" band: a bullet should fill at least 98% of its line
@@ -36,21 +44,23 @@ const BRIM_MAX = 100;
 const AVG_CHAR_PX = 5.4;
 
 /**
- * Usable width of a bullet's text, in points.
- * 540 − 83 (category) − 7.75 (marker)          = 449.25pt  (Internship / Projects)
- * 540 − 83 (category) − 30 (year) − 7.75       = 419.25pt  (POR / Awards)
+ * Usable width of a bullet's text, in points — Skynet's real line widths:
+ * 550 − 82.125 − 0.75 − 12 − 3                 = 452.125pt  (Internship / Projects)
+ * 550 − 82.125 − 0.75 − 12 − 1.375 − 0.75 − 31.5 = 421.5pt   (POR / Awards, with year)
+ * Proof from Skynet PDFs: lines of 452.1pt and 421.5pt print on one line.
  */
 function bulletCapacityPt(hasCategory, hasYear) {
-  return LAYOUT.tableWidthPt
-    - (hasCategory ? LAYOUT.categoryWidthPt : 0)
-    - (hasYear ? LAYOUT.yearWidthPt : 0)
-    - LAYOUT.bulletGutterPt;
+  let width = LAYOUT.boxInnerWidthPt - LAYOUT.bulletIndentPt;
+  if (hasCategory) width -= LAYOUT.categoryWidthPt + LAYOUT.borderPt;
+  if (hasYear) width -= LAYOUT.yearGapPt + LAYOUT.borderPt + LAYOUT.yearWidthPt;
+  else width -= LAYOUT.rightPadPt;
+  return Math.round(width * 1000) / 1000;
 }
 
 // ---- Font loading ----------------------------------------------------
-// Measurements are only correct once EB Garamond has downloaded.
-// Until then (or if it never loads, e.g. offline) we fall back to Georgia
-// and tell the user the numbers are approximate.
+// The meter does NOT need the font (it uses the width table in metrics.js),
+// but the preview does: until EB Garamond downloads, the preview is drawn
+// in Georgia and won't look like the Skynet PDF.
 let fontStatus = 'loading'; // 'loading' | 'ready' | 'fallback'
 
 async function loadCvFont() {
@@ -74,19 +84,35 @@ async function loadCvFont() {
 }
 
 // ---- Measuring one piece of text --------------------------------------
-let measureCtx = null;            // the invisible canvas, created once
+let measureCtx = null;            // invisible canvas, only for rare characters
 const widthCache = new Map();     // remembers widths we already measured
 
-/** Width in px of `text` in the CV font (regular or bold). */
+/**
+ * Width of ONE character in 1/1000ths of the font size.
+ * Normally read from the table in metrics.js. A character that isn't in the
+ * table (an emoji, say) is measured with a canvas instead — close, not exact.
+ */
+function charUnits(ch, isBold) {
+  const table = isBold ? CV_METRICS.bold : CV_METRICS.regular;
+  const units = table[ch.codePointAt(0)];
+  if (units !== undefined) return units;
+
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = `${isBold ? 700 : 400} 100px "${CV_FONT_FAMILY}", "DejaVu Sans", Georgia, serif`;
+  if ('fontKerning' in measureCtx) measureCtx.fontKerning = 'none';
+  return measureCtx.measureText(ch).width * 10; // 100px font → ×10 = units per 1000
+}
+
+/** Width in px of `text` in the CV font (regular or bold), the way Skynet adds it up. */
 function measureWidthPx(text, isBold) {
   if (!text) return 0;
   const key = (isBold ? 'b|' : 'r|') + text;
   if (widthCache.has(key)) return widthCache.get(key);
 
-  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
-  const sizePx = CV_FONT_SIZE_PT * PX_PER_PT; // 9.75pt → 13px
-  measureCtx.font = `${isBold ? 700 : 400} ${sizePx}px "${CV_FONT_FAMILY}", Georgia, serif`;
-  const width = measureCtx.measureText(text).width;
+  let units = 0;
+  for (const ch of text) units += charUnits(ch, isBold); // for…of walks real characters (₹, emoji…)
+  const widthPt = (units / 1000) * CV_FONT_SIZE_PT;
+  const width = widthPt * PX_PER_PT;
 
   widthCache.set(key, width);
   return width;
@@ -202,7 +228,7 @@ function analyzeBullet(rawText, capacityPt) {
     result.deltaPx = capacityPx * (BRIM_MIN / 100) - widthPx;
     result.message = `Underfilled — add ~${Math.ceil(result.deltaPx)}px (~${Math.ceil(result.deltaPx / AVG_CHAR_PX)} chars) to reach the brim.`;
   }
-  if (fontStatus === 'fallback') result.message += ' (approx. — EB Garamond not loaded)';
+  if (fontStatus === 'fallback') result.message += ' (preview font not loaded; this number is still exact)';
   return result;
 }
 

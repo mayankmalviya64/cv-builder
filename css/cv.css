@@ -1,74 +1,129 @@
 /* =====================================================================
    cv.css — the printed CV page (A4)
    ---------------------------------------------------------------------
-   Everything is in pt so the on-screen preview and the PDF are identical.
+   Benchmarked against real Skynet (IIM Mumbai CV portal) PDFs: every
+   size and position below was measured from those PDFs, in pt.
+
    Geometry (must match LAYOUT in js/measure.js):
-     section box ........ 540pt wide (+0.75pt border each side)
-     category column .... 83pt
-     year column ........ 30pt
-     bullet marker area . 7.75pt
-     → bullet text width  449.25pt (no year) / 419.25pt (with year)
+     section box ............ 550pt inside, 0.75pt borders, starts at x = 21.75pt
+     category column ........ 82.125pt (+0.75pt border)
+     bullet text starts ..... 12pt after the category border (■ sits in that gap)
+     no-year rows ........... text 452.125pt + 3pt right gap
+     year rows .............. text 421.5pt + 1.375pt gap + 0.75pt border + 31.5pt year
+
+   Text is drawn WITHOUT kerning or ligatures, because Skynet's PDF
+   engine (iText) doesn't use them. That way the preview's line widths
+   are exactly the widths measured in js/metrics.js.
+
+   Vertical placement: Chrome puts a line's baseline at
+     line-height / 2 + 0.3545 × font-size   (EB Garamond's font metrics)
+   The paddings below were picked so each baseline lands where Skynet's does.
    ===================================================================== */
+
+/* EB Garamond, hosted with the site (OFL licence: fonts/OFL.txt).
+   It's the full font, the same file js/metrics.js was built from. Google
+   Fonts' web version is split into subsets and is missing characters
+   like the ₂ in "CO₂", which then show up in a wider fallback font. */
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../fonts/EBGaramond-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../fonts/EBGaramond-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 .cv-page {
   position: relative;
   width: 595.28pt;
   min-height: 841.89pt;
   box-sizing: border-box;
-  padding: 16pt 26.89pt 10pt;          /* (595.28 − 541.5) / 2 = 26.89pt each side */
+  padding: 11.74pt 0 0 21.75pt;        /* name baseline at 25.2pt, boxes start at x = 21.75pt */
   background: #fff;
   color: #000;
   font-family: 'EB Garamond', Garamond, Georgia, serif;
   font-size: 9.75pt;
-  line-height: 1.12;
-  font-kerning: normal;
+  line-height: 11.25pt;
+  /* Match Skynet/iText: plain character widths, no kerning, no ligatures */
+  font-kerning: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "kern" 0, "liga" 0, "clig" 0, "calt" 0;
+  text-rendering: geometricPrecision;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 .cv-page b { font-weight: 700; }
 
+/* ₹ — Skynet's EB Garamond has no rupee sign, so it borrows DejaVu Sans,
+   which is wider. We keep the EB Garamond glyph but give it DejaVu's width. */
+.cv-rs { display: inline-block; width: 0.636em; text-align: center; text-indent: 0; }
+.cv-page b .cv-rs, .cv-rs.b { width: 0.695em; }
+
 /* ---- Header: name block on the left, logo on the right ---- */
 .cv-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4pt;
+  position: relative;
+  width: 551.5pt;
+  height: 41.32pt;                     /* name + 2 lines; with the gap below, the black bar starts at 57.16pt */
+  margin-bottom: 4.1pt;
+  letter-spacing: 0.375pt;             /* Skynet spaces the header letters slightly */
 }
-.cv-name { font-size: 19pt; font-weight: 700; line-height: 1.05; }
-.cv-sub  { font-size: 11pt; line-height: 1.12; }
-.cv-logo { height: 33pt; width: auto; max-width: 240pt; object-fit: contain; }
+.cv-name { font-size: 15.75pt; font-weight: 700; line-height: 15.75pt; }
+.cv-sub  { font-size: 11.25pt; line-height: 12.7pt; }
+.cv-name + .cv-sub { margin-top: 0.17pt; }
+.cv-logo {
+  position: absolute;
+  right: 0;                            /* right edge lines up with the boxes (573.25pt) */
+  top: -8.74pt;                        /* logo box spans y = 3pt…52.5pt, like Skynet */
+  width: 220.6pt;
+  height: 49.48pt;
+  object-fit: contain;
+  object-position: right center;
+}
 
 /* ---- Black headline bar ---- */
 .cv-headline {
-  width: 540pt;
-  box-sizing: content-box;
-  border: 0.75pt solid #000;
+  width: 551.5pt;
+  box-sizing: border-box;
+  min-height: 15pt;                    /* min, so a very long headline wraps instead of being cut */
   background: #000;
-  color: #fff;
+  color: #f9f9f9;
   font-weight: 700;
-  font-size: 12pt;
+  font-size: 11.25pt;
+  line-height: 14.3pt;
   text-align: center;
-  padding: 1pt 0;
-  letter-spacing: 0.1pt;
+  letter-spacing: 0.375pt;
 }
 
 /* ---- Section box ---- */
 .cv-sec {
-  width: 540pt;
-  box-sizing: content-box;          /* borders sit OUTSIDE the 540pt */
+  width: 550pt;
+  box-sizing: content-box;             /* borders sit OUTSIDE the 550pt */
   border: 0.75pt solid #000;
-  border-top: none;                 /* shares the line with the box above */
+  border-bottom: none;                 /* the last row's own bottom line closes the box */
+  margin-top: 2.625pt;                 /* small white gap between boxes, like Skynet */
 }
 .cv-sec-title {
   display: flex;
   justify-content: space-between;
-  background: #d9d9d9;
+  align-items: flex-start;
+  height: 13.5pt;                      /* 12.75pt grey + 0.75pt line (the app uses border-box sizing) */
+  background: #a8a8a8;
+  border-bottom: 0.75pt solid #000;
   font-weight: 700;
-  font-size: 11pt;
-  text-transform: uppercase;
-  padding: 0.5pt 3pt 0;
-  line-height: 1.1;
+  font-size: 10.875pt;
+  line-height: 12.25pt;
+  letter-spacing: 0.375pt;
+  padding: 0 0.4pt 0 3pt;
+  white-space: nowrap;
 }
+.cv-sec-title > span:first-child { text-transform: uppercase; }
+.cv-sec-title .note { position: relative; top: 1.4pt; }
 
 /* ---- Academic table ---- */
 .cv-acad {
@@ -76,92 +131,106 @@
   table-layout: fixed;
   border-collapse: collapse;
   text-align: center;
+  font-size: 9.375pt;
 }
 .cv-acad th, .cv-acad td {
-  border-top: 0.75pt solid #000;
+  height: 11.25pt;
+  box-sizing: border-box;
+  padding: 0 1pt 0.55pt;
+  line-height: 10.7pt;
+  border-bottom: 0.75pt solid #000;
   border-left: 0.75pt solid #000;
-  padding: 0 2pt;
   font-weight: 400;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: clip;
 }
+.cv-acad th { background: #ddd; }
 .cv-acad th:first-child, .cv-acad td:first-child { border-left: none; }
+.cv-acad td:nth-child(2) { padding-left: 4pt; } /* Skynet's institute names sit ~1.5pt right of centre */
 
 /* ---- Experience / project entry ---- */
-.cv-entry { border-top: 0.75pt solid #000; }
+.cv-entry-lines {
+  border-bottom: 0.75pt solid #000;
+  font-weight: 700;
+  line-height: 9.75pt;
+  padding: 0 4.5pt;
+}
+.cv-sec-title.has-note + .cv-entry .cv-entry-lines { padding-top: 2.075pt; }
 .cv-entry-head {
   display: grid;
-  grid-template-columns: 205pt 1fr auto;
-  font-weight: 700;
-  font-size: 10pt;
-  padding: 0 3pt;
-  line-height: 1.12;
+  grid-template-columns: 227.2pt 1fr auto;   /* role starts 227.2pt after the organisation */
 }
 .cv-entry-title {
   display: flex;
   justify-content: space-between;
   gap: 8pt;
-  font-weight: 700;
-  font-size: 10pt;
-  padding: 0 3pt;
-  line-height: 1.12;
 }
 .cv-entry-head .right, .cv-entry-title .right { text-align: right; white-space: nowrap; }
 
 /* ---- Category + bullets block ---- */
 .cv-group {
   display: grid;
-  grid-template-columns: 83pt 1fr;
-  border-top: 0.75pt solid #000;
+  grid-template-columns: 82.875pt 1fr; /* 82.125pt grey cell + 0.75pt border */
+  border-bottom: 0.75pt solid #000;
 }
 .cv-cat {
   box-sizing: border-box;
+  background: #ddd;
   border-right: 0.75pt solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-weight: 700;
-  padding: 1pt 2pt;
-  line-height: 1.15;
+  padding: 0 0 0 2.25pt;               /* Skynet's labels sit ~1.1pt right of centre */
+  line-height: 12.375pt;
 }
-.cv-rows { min-width: 0; }
+.cv-cat > span { position: relative; top: 0.7pt; }   /* Skynet's labels sit a touch lower */
+.cv-rows { min-width: 0; padding: 1.834pt 0 1.166pt; }   /* experience bullets: 11.25pt lines */
+.cv-group.has-year .cv-rows { padding: 0; }
 .cv-row  { display: flex; }
+.cv-group.has-year .cv-row { min-height: 12.375pt; }   /* min, so a spilling bullet can still grow */
+/* Year rows: nudge the text down inside each cell (not the row), so the year column's line stays unbroken */
+.cv-group.has-year .cv-row > * { padding-top: 1pt; }
 
 .cv-bullet {
   position: relative;
   flex: 1;
   min-width: 0;
-  padding-left: 7.75pt;     /* room for the ▪ marker */
+  padding-left: 12pt;                  /* room for the ■ marker */
 }
+.cv-group:not(.has-year) .cv-bullet { padding-right: 3pt; }
+.cv-group.has-year .cv-bullet { padding-right: 1.375pt; }
 .cv-mark {
   position: absolute;
-  left: 1.6pt;
-  top: 0;
-  font-size: 7.5pt;
-  line-height: 13.6pt;      /* roughly centres the square on the text line */
+  left: 4.65pt;
+  top: 0.49pt;                         /* puts the ■ 1.1pt above the text baseline, like Skynet */
+  font-size: 5.25pt;
+  line-height: 11.25pt;
 }
 .cv-text {
-  display: inline-block;    /* width is set inline to the exact line capacity */
+  display: inline-block;               /* width is set inline to the exact line capacity */
   vertical-align: top;
 }
+.cv-text.fit { white-space: nowrap; }  /* fits by the meter → never let rounding wrap it */
 .cv-year {
-  box-sizing: border-box;
+  box-sizing: content-box;
   flex: none;
-  width: 30pt;
+  width: 31.5pt;
   border-left: 0.75pt solid #000;
   text-align: center;
 }
 
 /* ---- Footer link ---- */
 .cv-footer {
+  width: 551.5pt;
   text-align: center;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 6.5pt;
-  margin-top: 2pt;
+  font-size: 7.5pt;
+  line-height: 7.5pt;
+  margin-top: 1.85pt;
 }
-.cv-footer a { color: #1155cc; text-decoration: none; }
+.cv-footer a { color: #00f; text-decoration: none; }
 
 /* ---- Screen-only helpers (never printed) ---- */
 .cv-pagebreak {

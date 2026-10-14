@@ -49,7 +49,8 @@ function updatePageFit() {
   const pageTop = els.page.getBoundingClientRect().top;
   const scale = currentScale || 1;
   const contentBottom = last ? (last.getBoundingClientRect().bottom - pageTop) / scale : 0;
-  const bottomPadding = 10 * PX_PER_PT;
+  // Skynet's footer ends ~2.5pt above the page edge; keep 1pt of safety.
+  const bottomPadding = 1 * PX_PER_PT;
   const overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
 
   const marker = els.page.querySelector('.cv-pagebreak');

@@ -51,7 +51,7 @@ const SAMPLE_CV = {
               label: 'Roles &\nResponsibilities',
               bullets: [
                 { text: 'Enabled FT impact evaluation across 4 MAU buckets via product analytics KPIs, pain point research and Databricks SQL' },
-                { text: 'Enhanced **CRM** personalization via **7-persona SQL model** powering product discovery, prioritization & **GTM** strategy' },
+                { text: 'Enhanced **CRM** personalization via **7-persona** **SQL model** powering product discovery, prioritization & **GTM** strategy' },
                 { text: 'Enabled automated monthly MIS refresh via unified SQL table consolidating demographics, app & calling-behaviour data' },
               ],
             },
@@ -75,7 +75,7 @@ const SAMPLE_CV = {
             {
               label: 'Roles &\nResponsibilities',
               bullets: [
-                { text: 'Mapped **94M+** push impressions to trade-level brokerage in Databricks SQL, using **T+0/4** revenue attribution windows' },
+                { text: 'Mapped **94M+ **push impressions to trade-level brokerage in Databricks SQL, using **T+0/4** revenue attribution windows' },
                 { text: 'Improved attribution accuracy for **Hyper Alert** campaign re-engagement, flagging clicked-but-not-traded user drop-offs' },
                 { text: 'Boosted CTR comparability across **20+** campaigns via cross-channel funnel analysis & **Push-InApp** event normalisation' },
               ],
@@ -83,8 +83,8 @@ const SAMPLE_CV = {
             {
               label: 'Achievements',
               bullets: [
-                { text: 'Optimized query run time by scanning **precise 5-10%** of data via **3-tier** data mart on **30+ events**, client & month split' },
-                { text: 'Quantified ₹10 Cr+ CDP brokerage revenue via Databricks attribution model, enabling product-KPI & revenue tracking' },
+                { text: 'Optimized query run time by scanning **precise 5-10% **of data via **3-tier** data mart on **30+ events**, client & month split' },
+                { text: 'Quantified** **₹10 Cr+ CDP brokerage revenue via Databricks attribution model, enabling product-KPI & revenue tracking' },
               ],
             },
           ],
@@ -106,8 +106,8 @@ const SAMPLE_CV = {
             {
               label: 'Project Details',
               bullets: [
-                { text: 'Diagnosed an **8 month** contractual DSAT across **325** agent and ticket records using Anova, Cramer’s V and Tukey HSD' },
-                { text: 'Led a **DMAIC** root cause study via **Fishbone, 5 Whys, FMEA, Pareto, I-MR** capability, sizing the baseline at **0.9 sigma**' },
+                { text: 'Diagnosed an **8 month **contractual DSAT across **325** agent and ticket records using Anova, Cramer\'s V and Tukey HSD' },
+                { text: 'Led a **DMAIC** root cause study via Fishbone, **5 Whys, FMEA, Pareto, I-MR **capability, sizing the baseline at **0.9 sigma**' },
                 { text: 'Quantified Cost of Poor Quality at **USD 4.58M** annually and built a **3-year** business case for a **USD 2.57M** programme' },
                 { text: 'Built & deployed a **9 Module** Interactive DSAT simulator on GitHubPages with live recomputation of all scenario levers' },
               ],
@@ -116,8 +116,8 @@ const SAMPLE_CV = {
               label: 'Achievements',
               bullets: [
                 { text: 'Established **contact count** as the driver of **88%** of satisfaction variance and support tenure as a variable misdirecting plans' },
-                { text: 'Derived a transfer function turning lagging DSAT into a steerable **81 to 88%** FCR target via **7 initiatives** & an SPC plan' },
-                { text: 'Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today' },
+                { text: 'Derived a transfer function turning lagging DSAT into a steerable **81 to 88% **FCR target via **7 initiatives** & an SPC plan' },
+                { text: 'Projected **203% ROI,** at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today' },
               ],
             },
           ],
@@ -132,7 +132,7 @@ const SAMPLE_CV = {
             {
               label: 'Project Details',
               bullets: [
-                { text: 'Diagnosed a footwear brand’s **8%** share gap in **8 NE** states via PESTEL, SWOT, Porter’s Five Forces, 3C and an issue tree' },
+                { text: 'Diagnosed a footwear brand\'s **8%** share gap in **8 NE** states via PESTEL, SWOT, Porter\'s Five Forces, 3C and an issue tree' },
                 { text: 'Strategised a **4-line** regional product architecture tilted to all-weather sports, adding an ethnic capsule made with artisans' },
                 { text: 'Forecasted a **3-year** financial model for a **₹24 Crore** self-funded regional expansion, with **₹165** CAC and **₹1,822** LTV' },
                 { text: 'Formulated a **3-phase**, gate driven **GTM** and resilience plan with a **7 risk** mitigation matrix and capital light fallback plan' },
@@ -141,7 +141,7 @@ const SAMPLE_CV = {
             {
               label: 'Achievements',
               bullets: [
-                { text: 'Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint' },
+                { text: 'Sized a **₹3,600 Cr** TAM and ₹**880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint' },
                 { text: 'Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India' },
                 { text: 'Projected **4.6:1** LTV to CAC, regional revenue from **₹14 Cr-₹46 Cr** and market share from **8% to 15%** in **36 months**' },
                 { text: 'Cut target lead time from **4.5** to **3 days** via a regional distribution hub, AI-led demand forecasting and route optimisation' },
@@ -167,7 +167,7 @@ const SAMPLE_CV = {
         {
           label: 'Project Head (Aero\nClub | IITG)',
           bullets: [
-            { text: 'Mentored **8 projects** with **45+ students** and ensured successful demos during TechEvince, IITG’s flagship expo', year: '2021' },
+            { text: 'Mentored **8** **projects** with **45+ students **and ensured successful demos during TechEvince, IITG’s flagship expo', year: '2021' },
             { text: 'Implemented **robust** project **oversights** by establishing **timelines**, tracking **milestones**, and enforcing deadlines', year: '2021' },
             { text: 'Oversaw resource **optimization**, balancing **budget** and **assets** to meet project objectives **without** cost **overruns**', year: '2021' },
           ],
@@ -184,7 +184,7 @@ const SAMPLE_CV = {
           bullets: [
             { text: 'National Winner for Tata Consumer Products Limited (TCPL) outperforming 14,000+ candidates', year: '2026' },
             { text: 'National Finalist for Bottoms Up 5.0 - AI for Consulting hosted by Thoucentric & Xoriant', year: '2026' },
-            { text: 'Campus Finalist for Axis Moves’26 by Axis Bank among 42,000+ participants', year: '2026' },
+            { text: 'Campus Finalist for Axis Moves\'26 by Axis Bank among 42,000+ participants', year: '2026' },
             { text: 'Campus Finalist for Marico Over The Wall among 28,000+ registered students', year: '2026' },
           ],
         },
@@ -197,22 +197,22 @@ const SAMPLE_CV = {
         {
           label: 'Academics',
           bullets: [
-            { text: 'Spearheaded research on **CO₂ sequestration** with MOFs securing **AA** for pioneering **sustainability** approaches', year: '2022' },
-            { text: 'Attained **AA** in **Economic Development** for policy-driven analysis of **India’s growth trajectory** (1947-2011)', year: '2021' },
+            { text: 'Spearheaded** **research** **on** CO₂ sequestration **with** **MOFs** **securing** AA **for** **pioneering **sustainability** approaches', year: '2022' },
+            { text: 'Attained** AA **in** Economic Development **for** **policy-driven** **analysis** **of **India’s growth trajectory **(1947-2011)', year: '2021' },
           ],
         },
         {
           label: 'Certifications',
           bullets: [
             { text: 'Successfully acquired UiPath Academic Alliance Student **Agentic Automation Associate** certification by **PwC**', year: '2025' },
-            { text: 'Acquired certification of **Lean Six Sigma Green Belt** online from Advanced Innovation Group Pro Excellence', year: '2025' },
+            { text: 'Acquired** **certification** **of** Lean Six Sigma Green Belt **online** **from** **Advanced** **Innovation** **Group** **Pro** **Excellence', year: '2025' },
           ],
         },
         {
           label: 'Extra-Curriculars',
           bullets: [
-            { text: 'Ranked **5th** among **125+** teams in Business Prodigy **Consulting Olympiad** demonstrating **strategic** excellence', year: '2025' },
-            { text: 'Delivered **40+ hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**', year: '2020' },
+            { text: 'Ranked** 5th **among** 125+ **teams** **in** **Business** **Prodigy** Consulting Olympiad **demonstrating** strategic **excellence', year: '2025' },
+            { text: 'Delivered **40+** **hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**', year: '2020' },
           ],
         },
       ],

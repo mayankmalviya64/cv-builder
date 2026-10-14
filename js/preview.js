@@ -17,10 +17,18 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Make ₹ as wide as Skynet prints it. Skynet's EB Garamond has no ₹, so it
+ * borrows the (wider) DejaVu Sans one; the .cv-rs box copies that width.
+ */
+function rupeeHtml(html) {
+  return html.replace(/₹/g, '<span class="cv-rs">₹</span>');
+}
+
 /** Bullet text → HTML, turning **bold** into <b>bold</b>. */
 function richText(text) {
   return parseBold(normalizeSpaces(text))
-    .map(p => (p.bold ? `<b>${escapeHtml(p.text)}</b>` : escapeHtml(p.text)))
+    .map(p => (p.bold ? `<b>${rupeeHtml(escapeHtml(p.text))}</b>` : rupeeHtml(escapeHtml(p.text))))
     .join('');
 }
 
@@ -29,14 +37,17 @@ function labelHtml(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
-/** One bullet row: ▪ marker + text box exactly as wide as the line capacity. */
+/** One bullet row: ■ marker + text box exactly as wide as the line capacity. */
 function bulletHtml(bullet, path, capacityPt, showYear) {
   const check = analyzeBullet(bullet.text, capacityPt);
   const year = showYear ? `<div class="cv-year">${escapeHtml(bullet.year)}</div>` : '';
+  // If the meter says it fits on one line, forbid wrapping so tiny screen
+  // rounding can never push the last word down (Skynet wouldn't either).
+  const fitClass = check.lines <= 1 ? ' fit' : '';
   return `
     <div class="cv-row">
       <div class="cv-bullet st-${check.status}" data-path="${path}" title="${escapeHtml(check.message)} (${check.fill.toFixed(1)}%)">
-        <span class="cv-mark">▪</span><span class="cv-text" style="width:${capacityPt}pt">${richText(bullet.text)}</span>
+        <span class="cv-mark">■</span><span class="cv-text${fitClass}" style="width:${capacityPt}pt">${richText(bullet.text)}</span>
       </div>${year}
     </div>`;
 }
@@ -49,7 +60,7 @@ function groupHtml(group, path, showYear) {
     .join('');
   return `
     <div class="cv-group${showYear ? ' has-year' : ''}">
-      <div class="cv-cat">${labelHtml(group.label)}</div>
+      <div class="cv-cat"><span>${labelHtml(group.label)}</span></div>
       <div class="cv-rows">${rows}</div>
     </div>`;
 }
@@ -61,7 +72,7 @@ function academicHtml(section) {
     .join('');
   return `
     <table class="cv-acad">
-      <colgroup><col style="width:172pt"><col style="width:280pt"><col style="width:44pt"><col style="width:44pt"></colgroup>
+      <colgroup><col style="width:209pt"><col style="width:247.5pt"><col style="width:49.5pt"><col style="width:44pt"></colgroup>
       <thead><tr>${head}</tr></thead>
       <tbody>${body}</tbody>
     </table>`;
@@ -78,7 +89,9 @@ function experienceHtml(section, sIndex) {
       ? `<div class="cv-entry-title"><span>${escapeHtml(entry.subtitle)}</span><span class="right">${escapeHtml(entry.duration)}</span></div>`
       : '';
     const groups = entry.groups.map((g, gIndex) => groupHtml(g, `${path}.groups.${gIndex}`, false)).join('');
-    return `<div class="cv-entry">${headLine}${titleLine}${groups}</div>`;
+    // The two bold lines share one block with a line under it, like Skynet.
+    const lines = headLine || titleLine ? `<div class="cv-entry-lines">${headLine}${titleLine}</div>` : '';
+    return `<div class="cv-entry">${lines}${groups}</div>`;
   }).join('');
 }
 
@@ -98,10 +111,10 @@ function renderCvHtml(cv) {
     if (section.type === 'academic') body = academicHtml(section);
     else if (section.type === 'experience') body = experienceHtml(section, sIndex);
     else body = categorizedHtml(section, sIndex);
-    const note = section.note ? `<span>${escapeHtml(section.note)}</span>` : '';
+    const note = section.note ? `<span class="note">${escapeHtml(section.note)}</span>` : '';
     return `
       <section class="cv-sec">
-        <div class="cv-sec-title"><span>${escapeHtml(section.title)}</span>${note}</div>
+        <div class="cv-sec-title${section.note ? ' has-note' : ''}"><span>${escapeHtml(section.title)}</span>${note}</div>
         ${body}
       </section>`;
   }).join('');
