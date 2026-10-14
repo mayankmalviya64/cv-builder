@@ -177,7 +177,8 @@ const SAMPLE_CV = {
                   "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88%** FCR target via **7 initiatives** & an SPC plan"
                 },
                 {
-                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today"
+                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today",
+                  "hidden": true
                 }
               ]
             }
@@ -211,7 +212,8 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
+                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint",
+                  "hidden": true
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
@@ -362,7 +364,8 @@ const SAMPLE_CV = {
               "text": "Delivered **40+ hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
               "year": "2020"
             }
-          ]
+          ],
+          "hidden": true
         }
       ]
     }

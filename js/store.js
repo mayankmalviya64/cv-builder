@@ -3,6 +3,7 @@
    ---------------------------------------------------------------------
    - Autosaves to this browser's localStorage (only you see it).
    - Export / Import a .json file to move your CV between devices.
+   - Import also reads a CV PDF (import-pdf.js) or Word .docx (import-word.js).
    - Small helpers to read/write a value by its "path"
      e.g. getAt(cv, 'sections.1.entries.0.org').
    ===================================================================== */
@@ -151,11 +152,19 @@ function exportCv(cv) {
 }
 
 /**
- * Read a file chosen by the user: a CV PDF (e.g. from Skynet) or a .json
+ * Read a file chosen by the user: a CV PDF (e.g. from Skynet), a Word .docx, or a .json
  * exported from this builder. Resolves with { cv, source } or rejects with a message.
  * `current` is the CV on screen (its logo is kept, a PDF can't give us one).
  */
 async function importCvFile(file, current) {
+  // Word: .docx works; old .doc files need to be re-saved as .docx first.
+  if (/\.docx$/i.test(file.name) || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const { cv } = await importWordFile(file, current);
+    return { cv, source: 'word' };
+  }
+  if (/\.doc$/i.test(file.name) || file.type === 'application/msword') {
+    throw new Error('That’s an old Word file (.doc). Open it in Word, choose File → Save As → Word Document (.docx), then import the .docx.');
+  }
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (isPdf) {
     const { cv } = await importPdfFile(file, current);
@@ -165,7 +174,7 @@ async function importCvFile(file, current) {
   try {
     data = JSON.parse(await file.text());
   } catch (err) {
-    throw new Error('That file isn’t a PDF or a .json CV, so it can’t be imported.');
+    throw new Error('That file isn’t a PDF, a Word .docx or a .json CV, so it can’t be imported.');
   }
   if (!isValidCv(data)) throw new Error('That .json file doesn’t look like a CV from this builder.');
   return { cv: normalizeCv(data), source: 'json' };

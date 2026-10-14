@@ -557,6 +557,7 @@ function parseGeneric(lines) {
 
   // Headings: short lines in capitals, or bold and a bit bigger than body text.
   const isHeading = l => {
+    if (l.heading !== undefined) return l.heading; // a Word file already knows its headings
     const t = segText(l);
     if (t.length > 60 || BULLET_START_RE.test(t) || l.segs.length > 2) return false;
     const letters = t.replace(/[^A-Za-z]/g, '');
@@ -573,61 +574,141 @@ function parseGeneric(lines) {
   cv.personal.line2 = header[1] ? segText(header[1]) : '';
   cv.headline = header.slice(2).map(segText).join(' | ');
 
+  // A note at the right of a heading line, e.g. "SUMMER INTERNSHIP      12 Weeks"
+  const isNote = t => /^\d+\s*(weeks?|months?)$/i.test(t.trim());
   let section = null;
   for (const l of lines.slice(firstHeading < 0 ? lines.length : firstHeading)) {
     if (isHeading(l)) {
-      section = { title: titleCase(segText(l)), items: [] };
+      const last = l.segs[l.segs.length - 1].text;
+      const hasNote = l.segs.length > 1 && isNote(last);
+      const title = hasNote ? l.segs.slice(0, -1).map(s => s.text).join(' ') : segText(l);
+      section = { title: titleCase(title.replace(/[:\s]+$/, '')), note: hasNote ? last : '', items: [] };
       cv.sections.push(section);
       continue;
     }
     section.items.push(l);
   }
 
+  const isBulletLine = l => BULLET_START_RE.test(l.segs[0].text);
+  const lineMarkup = l => runsToMarkup(l.segs.flatMap((s, i) => (i ? [{ text: ' ', bold: false }, ...s.runs] : s.runs)));
+
   cv.sections = cv.sections.map(sec => {
-    if (/educat|academ|qualif/i.test(sec.title)) {
+    // A grades table: an Education/Academic section without bullet points.
+    if (/educat|academ|qualif/i.test(sec.title) && !sec.items.some(isBulletLine)) {
       return {
         type: 'academic', title: sec.title, columns: ['Degree', 'Institute', '%/CGPA', 'Year'],
         rows: sec.items.map(l => {
           const cells = l.segs.map(s => s.text);
+          if (cells.length < 4) return splitAcademicRow(cells.join(' | ')); // "MBA, IIM Mumbai - Pursuing | 2028"
           const row = [cells[0] || '', cells.slice(1, -2).join(' ') || cells[1] || '', cells.length > 2 ? cells[cells.length - 2] : '', cells.length > 2 ? cells[cells.length - 1] : ''];
           return row;
-        }),
+        }).filter(row => !/^(degree|qualification|examination|course)$/i.test(row[0].trim())), // drop a "Degree | Institute | …" header row
       };
+    }
+    // No bullet signs at all (e.g. Skills: "Analytical Tools: Tableau, SAS…"):
+    // every line is a bullet, and a short "Label:" in front becomes its category.
+    if (!sec.items.some(isBulletLine)) {
+      const bullets = sec.items.map(l => {
+        const lastSeg = l.segs[l.segs.length - 1];
+        const year = l.segs.length > 1 && isYearText(lastSeg.text) ? lastSeg.text : (l.year || '');
+        const segs = year && l.segs.length > 1 ? l.segs.slice(0, -1) : l.segs;
+        const runs = segs.flatMap((s, i) => (i ? [{ text: ' ', bold: false }, ...s.runs] : s.runs));
+        const plain = runs.map(r => r.text).join('');
+        const label = plain.match(/^\s*([^:]{2,30}):\s+\S/);
+        if (!label) return { text: runsToMarkup(runs), year, cat: l.cat || '' };
+        // Keep only the runs after the first ":" (bold/italic stay as they were)
+        let skip = plain.indexOf(':') + 1;
+        const rest = [];
+        for (const r of runs) {
+          if (skip >= r.text.length) { skip -= r.text.length; continue; }
+          rest.push({ ...r, text: r.text.slice(skip) });
+          skip = 0;
+        }
+        return { text: runsToMarkup(rest), year, cat: label[1].trim() };
+      });
+      const showYear = bullets.some(b => b.year);
+      return { type: 'categorized', title: sec.title, showYear, groups: groupByCategory(bullets, showYear) };
     }
     // Bullets start with a bullet sign; other lines become company/project lines.
     const entries = [];
     let bulletX = null;
     for (const l of sec.items) {
       const first = l.segs[0];
-      const raw = runsToMarkup(l.segs.flatMap((s, i) => (i ? [{ text: ' ', bold: false }, ...s.runs] : s.runs)));
+      const raw = lineMarkup(l);
       const yearSeg = l.segs.length > 1 && isYearText(l.segs[l.segs.length - 1].text) ? l.segs[l.segs.length - 1] : null;
       const entry = entries[entries.length - 1];
-      if (BULLET_START_RE.test(first.text)) {
+      const right = l.segs.length > 1 ? l.segs[l.segs.length - 1].text : '';
+      if (isBulletLine(l)) {
         const text = raw.replace(/^(\*\*)?[■▪•●◦‣∙·▸►➢✓✔\-–*]\s*/, '$1').replace(yearSeg ? new RegExp(`\\s*${yearSeg.text}$`) : /$^/, '');
         bulletX = first.x0;
         if (!entry) entries.push({ org: '', bullets: [] });
-        entries[entries.length - 1].bullets.push({ text, year: yearSeg?.text || '' });
+        // l.cat = the category label next to the bullet (Word tables), e.g. "Achievements"
+        entries[entries.length - 1].bullets.push({ text, year: l.year || yearSeg?.text || '', cat: l.cat || '' });
       } else if (entry && entry.bullets.length && bulletX !== null && first.x0 > bulletX + 2) {
         const last = entry.bullets[entry.bullets.length - 1];
         last.text = joinMarkup(last.text, raw);
+      } else if (/^project title/i.test(first.text)) {
+        // "Project Title: …   3 Weeks": the title line of a project. A second one starts a new project.
+        const subtitle = first.text;
+        const duration = isNote(right) ? right : '';
+        if (entry && !entry.bullets.length && !entry.subtitle) Object.assign(entry, { subtitle, duration });
+        else entries.push({ org: '', subtitle, duration, bullets: [] });
       } else if (entry && !entry.bullets.length && entry.org && !entry.subtitle) {
-        entry.subtitle = l.segs.map(s => s.text).join(' ');
+        entry.subtitle = l.segs.length > 1 && isNote(right) ? l.segs.slice(0, -1).map(s => s.text).join(' ') : l.segs.map(s => s.text).join(' ');
+        if (l.segs.length > 1 && isNote(right)) entry.duration = right;
       } else {
-        const right = l.segs.length > 1 ? l.segs[l.segs.length - 1].text : '';
-        entries.push({ org: l.segs[0].text, dates: right, bullets: [] });
+        const middle = l.segs.length > 2 ? l.segs.slice(1, -1).map(s => s.text).join(' ') : '';
+        entries.push({ org: first.text, role: middle, dates: right, bullets: [] });
       }
     }
-    const hasHeads = entries.some(e => e.org);
+    const hasHeads = entries.some(e => e.org || e.subtitle);
     const showYear = entries.some(e => e.bullets.some(b => b.year));
     if (!hasHeads) {
-      return { type: 'categorized', title: sec.title, showYear, groups: [{ label: '', bullets: entries.flatMap(e => e.bullets) }] };
+      return { type: 'categorized', title: sec.title, showYear, groups: groupByCategory(entries.flatMap(e => e.bullets), showYear) };
     }
     return {
-      type: 'experience', title: sec.title, note: '',
-      entries: entries.map(e => ({ org: e.org || '', role: '', dates: e.dates || '', subtitle: e.subtitle || '', duration: '', groups: [{ label: '', bullets: e.bullets.map(b => ({ text: b.text })) }] })),
+      type: 'experience', title: sec.title, note: sec.note || '',
+      entries: entries.map(e => ({ org: e.org || '', role: e.role || '', dates: e.dates || '', subtitle: e.subtitle || '', duration: e.duration || '', groups: groupByCategory(e.bullets, false) })),
     };
   });
   return cv;
+}
+
+/**
+ * Bullets → category groups, keeping their order. Bullets with the same
+ * category label next to each other share one group ("" = no label).
+ */
+function groupByCategory(bullets, showYear) {
+  const groups = [];
+  for (const b of bullets) {
+    let g = groups[groups.length - 1];
+    if (!g || g.label !== b.cat) groups.push(g = { label: b.cat || '', bullets: [] });
+    g.bullets.push(showYear ? { text: b.text, year: b.year || '' } : { text: b.text });
+  }
+  return groups.length ? groups : [{ label: '', bullets: [] }];
+}
+
+/**
+ * One line of text → [Degree, Institute, %/CGPA, Year].
+ * e.g. "MBA, Indian Institute of Management Mumbai - Pursuing | 2028"
+ *   → ["MBA", "Indian Institute of Management Mumbai", "Pursuing", "2028"]
+ */
+function splitAcademicRow(text) {
+  let rest = text.replace(/\s+/g, ' ').trim();
+  const take = re => {
+    const m = rest.match(re);
+    if (!m) return '';
+    rest = (rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length)).trim();
+    return m[1].trim();
+  };
+  const year = take(/(?:^|[\s|,–-])((?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)?\d{2})?)\s*\|?\s*$/);
+  const score = take(/(?:^|[\s|,–-])(\d{1,3}(?:\.\d+)?\s*%|\d{1,2}(?:\.\d+)?\s*(?:\/\s*10|CGPA|CPI|GPA)|Pursuing|Ongoing)/i);
+  rest = rest.replace(/^[\s|,–-]+|[\s|,–-]+$/g, '');
+  // Degree and institute: split at the first "|", " - " or ","
+  const cut = rest.match(/\s*\|\s*|\s+[-–]\s+|,\s*/);
+  const degree = cut ? rest.slice(0, cut.index) : rest;
+  const institute = cut ? rest.slice(cut.index + cut[0].length).replace(/^[\s|,–-]+|[\s|,–-]+$/g, '') : '';
+  return [degree.trim(), institute.trim(), score, year];
 }
 
 function mode(values) {

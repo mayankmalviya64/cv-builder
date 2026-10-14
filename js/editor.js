@@ -374,7 +374,7 @@ const Editor = (() => {
     }
     el.value = next;
     setAt(getCv(), path + '.text', next);
-    afterTextChange(el, path + '.text');
+    afterTextChange(el, path + '.text', 'structure'); // bold/italic = its own undo step
     el.focus();
   }
 
@@ -389,7 +389,13 @@ const Editor = (() => {
   }
 
   // ---------- event handlers ----------
-  function afterTextChange(el, bindPath) {
+  /**
+   * Update the meter etc. after a field's text changed, and record it for undo.
+   * kind 'text'  = ordinary typing (keystrokes within a second join one undo step)
+   * kind 'structure' = bold, italic, a tweak chip or a paste: always its own undo step,
+   *   so bold → unbold → ⌘Z brings the bold back.
+   */
+  function afterTextChange(el, bindPath, kind = 'text') {
     if (el.tagName === 'TEXTAREA') autoSize(el);
     if (el.dataset.kind === 'bullet') {
       refreshBullet(bindPath.replace(/\.text$/, ''));
@@ -401,7 +407,7 @@ const Editor = (() => {
       const card = el.closest('details');
       card.querySelector('.sum-title').textContent = el.value || 'Untitled';
     }
-    onChange('text');
+    onChange(kind);
   }
 
   function handleInput(event) {
@@ -486,7 +492,7 @@ const Editor = (() => {
       const el = root.querySelector(`[data-bind="${path}.text"]`);
       el.value = text.replace(tweak.find, tweak.replace);
       setAt(cv, path + '.text', el.value);
-      afterTextChange(el, path + '.text');
+      afterTextChange(el, path + '.text', 'structure'); // a tweak = its own undo step
     } else if (action === 'logo-remove') {
       cv.personal.logo = '';
       changed = true;
@@ -630,8 +636,7 @@ const Editor = (() => {
     setAt(getCv(), el.dataset.bind, el.value);
 
     if (lines.length === 1) {
-      afterTextChange(el, el.dataset.bind);
-      onChange('structure'); // a paste is its own undo step
+      afterTextChange(el, el.dataset.bind, 'structure'); // a paste is its own undo step
       return;
     }
     // More lines: each becomes a new bullet just below this one.

@@ -26,28 +26,28 @@
    like the ₂ in "CO₂", which then show up in a wider fallback font. */
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014e') format('woff2');
+  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014g') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014e') format('woff2');
+  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014g') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Italic.woff2?v=20261014e') format('woff2');
+  src: url('../fonts/EBGaramond-Italic.woff2?v=20261014g') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-BoldItalic.woff2?v=20261014e') format('woff2');
+  src: url('../fonts/EBGaramond-BoldItalic.woff2?v=20261014g') format('woff2');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
