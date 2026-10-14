@@ -32,7 +32,8 @@ function loadMammoth() {
 const SECTION_WORDS_RE = /^(academic|education|qualification|scholastic|experience|work|professional|internship|summer|project|position|responsibilit|leadership|award|achievement|honou?r|certification|course|skill|technical|extra|co-curricular|volunteer|publication|interest|hobb|summary|profile|objective|language)/i;
 
 /**
- * Text runs inside one element: [{ text, bold, italic }], bold/italic from <strong>/<b>/<em>/<i>.
+ * Text runs inside one element: [{ text, bold, italic, sup }], bold/italic from <strong>/<b>/<em>/<i>,
+ * superscript (the "th" in "10th") from <sup>.
  * Spaces and punctuation are always kept regular: Word often bolds the space or
  * comma next to a bold word, which would only clutter the text with ** marks.
  */
@@ -47,15 +48,15 @@ function htmlRuns(node) {
   });
 }
 
-function collectRuns(node, bold = false, italic = false, out = []) {
+function collectRuns(node, bold = false, italic = false, out = [], sup = false) {
   for (const child of node.childNodes) {
     if (child.nodeType === Node.TEXT_NODE) {
-      if (child.textContent) out.push({ text: child.textContent, bold, italic });
+      if (child.textContent) out.push({ text: child.textContent, bold, italic, sup });
     } else if (child.nodeType === Node.ELEMENT_NODE) {
       const tag = child.tagName;
       if (tag === 'BR') { out.push({ text: '\t', bold, italic }); continue; } // a line break inside a cell = a new column piece
       if (tag === 'UL' || tag === 'OL' || tag === 'TABLE') continue;         // lists/tables are handled on their own
-      collectRuns(child, bold || tag === 'STRONG' || tag === 'B', italic || tag === 'EM' || tag === 'I', out);
+      collectRuns(child, bold || tag === 'STRONG' || tag === 'B', italic || tag === 'EM' || tag === 'I', out, sup || tag === 'SUP');
     }
   }
   return out;

@@ -9,6 +9,8 @@
       page with its position, size and font.
    2. Pieces on the same height are joined into lines, and lines are split
       into "segments" wherever there's a big horizontal gap (columns).
+      Small raised pieces (the "th" of a superscript "10th") are put back
+      into their line and marked ^superscript^.
    3. Bold is detected by comparing each piece's printed width with the
       EB Garamond regular/bold widths in metrics.js. That also tells us
       whether a space between words was bold (2.31pt) or regular (1.95pt),
@@ -197,11 +199,35 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
   // Small square markers (■ at 5.25pt) are kept apart: they mark bullet starts.
   const markers = [];
   const rows = [];
+  const smallRaised = [];
   for (const p of pieces) {
     if (p.str.trim() && MARKER_RE.test(p.str.trim()) && p.size < 8) { markers.push(p); continue; }
     const row = rows.find(r => Math.abs(r.y - p.y) < 1.2);
     if (row) row.pieces.push(p); else rows.push({ y: p.y, pieces: [p] });
   }
+
+  // Superscripts ("10th" with a raised, smaller "th") sit ~3pt above their line,
+  // so above they landed in a row of their own, and the line itself got a gap
+  // where the "th" was, which split it in two. Move each one back into the line
+  // it belongs to, marked as superscript. A piece counts as a superscript when it:
+  //   • is smaller than the line's text (Skynet: 8.13pt vs 9.75pt),
+  //   • sits above that line's baseline by less than half a line, and
+  //   • touches a piece of that line on its left or right (no gap).
+  for (const row of rows) {
+    const small = row.pieces.filter(p => p.str.trim());
+    if (!small.length) continue;
+    const size = Math.max(...small.map(p => p.size));
+    const target = rows.find(r => r !== row
+      && r.y > row.y && r.y - row.y < size * 0.6           // its baseline is just below ours
+      && r.pieces.some(q => q.size > size * 1.1 && q.size < size * 1.4) // and its text is bigger
+      && small.every(p => r.pieces.some(q => Math.abs(q.x + q.w - p.x) < 0.6 || Math.abs(p.x + p.w - q.x) < 2.5)));
+    if (!target) continue;
+    // Spaces in the raised row are dropped: Skynet prints the space after "th" at the
+    // normal size, so the gap to the next word (judged at the normal size) decides it.
+    small.forEach(p => { p.sup = true; target.pieces.push(p); });
+    smallRaised.push(row);
+  }
+  smallRaised.forEach(row => rows.splice(rows.indexOf(row), 1));
 
   const lines = rows.sort((a, b) => a.y - b.y).map(row => {
     row.pieces.sort((a, b) => a.x - b.x);
@@ -234,7 +260,7 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
         const spaceBold = trustGap ? (gap / p.size) * 1000 > 218 : prev.bold && p.bold;
         seg.runs.push({ text: ' ', bold: spaceBold });
       }
-      seg.runs.push({ text: p.str, bold: p.bold, italic: p.italic });
+      seg.runs.push({ text: p.str, bold: p.bold, italic: p.italic, sup: !!p.sup });
       seg.x1 = Math.max(seg.x1, p.x + p.w);
       seg.size = Math.max(seg.size, p.size);
       prev = p;
@@ -251,7 +277,7 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
   return { lines, markers };
 }
 
-/** Runs → text with **bold** / _italic_ marks (see piecesToMarkup in measure.js). */
+/** Runs → text with **bold** / _italic_ / ^superscript^ marks (see piecesToMarkup in measure.js). */
 function runsToMarkup(runs) {
   return piecesToMarkup(runs);
 }

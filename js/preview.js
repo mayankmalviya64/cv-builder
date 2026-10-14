@@ -25,11 +25,12 @@ function rupeeHtml(html) {
   return html.replace(/₹/g, '<span class="cv-rs">₹</span>');
 }
 
-/** Bullet text → HTML, turning **bold** into <b>bold</b> and _italic_ into <i>italic</i>. */
+/** Bullet text → HTML: **bold** → <b>, _italic_ → <i>, ^superscript^ → <sup>. */
 function richText(text) {
   return parseBold(normalizeSpaces(text))
     .map(p => {
       let html = rupeeHtml(escapeHtml(p.text));
+      if (p.sup) html = `<sup>${html}</sup>`;
       if (p.italic) html = `<i>${html}</i>`;
       if (p.bold) html = `<b>${html}</b>`;
       return html;
@@ -91,8 +92,13 @@ function experienceHtml(section, sIndex) {
     if (!isIncluded(entry)) return ''; // unticked entry → not on the CV
     const path = `sections.${sIndex}.entries.${eIndex}`;
     // The "Company | Role | Dates" line only appears if something is filled in.
+    // No role? Then the company name may use the role's space too (Skynet does
+    // this: a long name like "…Kakrapar - Gujarat Site" stays on one line).
+    const orgRole = entry.role
+      ? `<span>${escapeHtml(entry.org)}</span><span>${escapeHtml(entry.role)}</span>`
+      : `<span class="span-role">${escapeHtml(entry.org)}</span>`;
     const headLine = (entry.org || entry.role || entry.dates)
-      ? `<div class="cv-entry-head"><span>${escapeHtml(entry.org)}</span><span>${escapeHtml(entry.role)}</span><span class="right">${escapeHtml(entry.dates)}</span></div>`
+      ? `<div class="cv-entry-head">${orgRole}<span class="right">${escapeHtml(entry.dates)}</span></div>`
       : '';
     const titleLine = (entry.subtitle || entry.duration)
       ? `<div class="cv-entry-title"><span>${escapeHtml(entry.subtitle)}</span><span class="right">${escapeHtml(entry.duration)}</span></div>`

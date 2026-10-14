@@ -79,6 +79,7 @@ const Editor = (() => {
           <div class="bl-actions">
             ${iconBtn('bold', path, '<b>B</b>', 'Bold the selected words (Ctrl/⌘+B)')}
             ${iconBtn('italic', path, '<i>I</i>', 'Italicise the selected words (Ctrl/⌘+I)')}
+            ${iconBtn('sup', path, 'x<sup>2</sup>', 'Superscript the selected letters, like the “th” in 10th (Ctrl/⌘+.)')}
             ${moveRemove(path, 'bullet')}
           </div>
         </div>
@@ -353,7 +354,12 @@ const Editor = (() => {
     toggleMark(path, '_', 'italicise');
   }
 
-  /** Shared by bold and italic: add or remove `mark` around the selection. */
+  /** Wrap the selected letters in ^…^ (superscript, like the "th" in 10^th^), or unwrap. */
+  function toggleSup(path) {
+    toggleMark(path, '^', 'superscript');
+  }
+
+  /** Shared by bold, italic and superscript: add or remove `mark` around the selection. */
   function toggleMark(path, mark, verb) {
     const el = root.querySelector(`[data-bind="${path}.text"]`);
     if (!el) return;
@@ -486,6 +492,8 @@ const Editor = (() => {
       toggleBold(path);
     } else if (action === 'italic') {
       toggleItalic(path);
+    } else if (action === 'sup') {
+      toggleSup(path);
     } else if (action === 'tweak') {
       const text = getAt(cv, path + '.text');
       const tweak = TWEAKS[Number(btn.dataset.index)];
@@ -535,6 +543,12 @@ const Editor = (() => {
       toggleItalic(bulletPath);
       return;
     }
+    // Ctrl/⌘ + . → superscript (same shortcut as Google Docs)
+    if ((event.metaKey || event.ctrlKey) && event.key === '.') {
+      event.preventDefault();
+      toggleSup(bulletPath);
+      return;
+    }
     // Enter → new bullet just below (a CV bullet never contains a line break)
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -573,20 +587,20 @@ const Editor = (() => {
 
   // ---------- paste with bold / italic (Google Docs, Sheets, Word, web pages) ----------
   // Copied text arrives with its formatting as HTML. We keep ONLY bold and italic
-  // (no fonts, sizes or colours) and turn them into **bold** / _italic_ marks.
+  // and superscript (no fonts, sizes or colours) and turn them into **bold** / _italic_ / ^sup^ marks.
   // Several pasted lines (paragraphs, list items, sheet rows) become several bullets.
 
-  /** HTML from the clipboard → lines, each a list of {text, bold, italic} pieces. */
+  /** HTML from the clipboard → lines, each a list of {text, bold, italic, sup} pieces. */
   function htmlToLines(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const lines = [[]];
     const newLine = () => { if (lines[lines.length - 1].length) lines.push([]); };
     const BLOCK = /^(P|DIV|LI|TR|H[1-6]|BLOCKQUOTE|PRE|UL|OL|TABLE|TBODY|SECTION|ARTICLE)$/;
 
-    function walk(node, bold, italic) {
+    function walk(node, bold, italic, sup = false) {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent.replace(/[\s\u00a0]+/g, ' ');
-        if (text.trim() || text === ' ') lines[lines.length - 1].push({ text, bold, italic });
+        if (text.trim() || text === ' ') lines[lines.length - 1].push({ text, bold, italic, sup });
         return;
       }
       if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -597,12 +611,14 @@ const Editor = (() => {
       // (Google Docs wraps everything in <b style="font-weight:normal">, so styles must win.)
       if (/^(B|STRONG|TH|H[1-6])$/.test(tag)) bold = true;
       if (/^(I|EM|CITE)$/.test(tag)) italic = true;
+      if (tag === 'SUP') sup = true;
       const st = node.style || {};
       if (st.fontWeight) bold = st.fontWeight === 'bold' || st.fontWeight === 'bolder' || Number(st.fontWeight) >= 600;
       if (st.fontStyle) italic = /italic|oblique/.test(st.fontStyle);
+      if (st.verticalAlign) sup = st.verticalAlign === 'super';   // Google Docs: <span style="vertical-align:super">
       const block = BLOCK.test(tag);
       if (block) newLine();
-      node.childNodes.forEach(child => walk(child, bold, italic));
+      node.childNodes.forEach(child => walk(child, bold, italic, sup));
       if (tag === 'TD' || tag === 'TH') lines[lines.length - 1].push({ text: ' ', bold: false, italic: false }); // cells in a row: space apart
       if (block) newLine();
     }

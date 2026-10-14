@@ -9,7 +9,8 @@
      category column ........ 82.125pt (+0.75pt border)
      bullet text starts ..... 12pt after the category border (■ sits in that gap)
      no-year rows ........... text 452.125pt + 3pt right gap
-     year rows .............. text 421.5pt + 1.375pt gap + 0.75pt border + 31.5pt year
+     year rows .............. text 422.875pt + 0.75pt border + 31.5pt year (no gap:
+                              Skynet lets text run right up to the year border)
 
    Text is drawn WITHOUT kerning or ligatures, because Skynet's PDF
    engine (iText) doesn't use them. That way the preview's line widths
@@ -26,28 +27,28 @@
    like the ₂ in "CO₂", which then show up in a wider fallback font. */
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014h') format('woff2');
+  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014i') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014h') format('woff2');
+  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014i') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Italic.woff2?v=20261014h') format('woff2');
+  src: url('../fonts/EBGaramond-Italic.woff2?v=20261014i') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-BoldItalic.woff2?v=20261014h') format('woff2');
+  src: url('../fonts/EBGaramond-BoldItalic.woff2?v=20261014i') format('woff2');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -181,10 +182,12 @@
   justify-content: space-between;
   gap: 8pt;
 }
+.cv-entry-head .span-role { grid-column: 1 / 3; }   /* no role: the company name gets the role's space too */
 .cv-entry-head .right, .cv-entry-title .right { text-align: right; white-space: nowrap; }
 
 /* ---- Category + bullets block ---- */
 .cv-group {
+  position: relative;                  /* for the year column's line (below) */
   display: grid;
   grid-template-columns: 82.875pt 1fr; /* 82.125pt grey cell + 0.75pt border */
   border-bottom: 0.75pt solid #000;
@@ -202,11 +205,13 @@
   line-height: 12.375pt;
 }
 .cv-cat > span { position: relative; top: 0.7pt; }   /* Skynet's labels sit a touch lower */
-.cv-rows { min-width: 0; padding: 1.834pt 0 1.166pt; }   /* experience bullets: 11.25pt lines */
+/* Bullets sit in the MIDDLE of the group when the category label is taller
+   (a 3-line label beside 2 bullets), like Skynet's table cells. */
+.cv-rows { min-width: 0; align-self: center; padding: 1.834pt 0 1.166pt; }   /* experience bullets: 11.25pt lines */
 .cv-group.has-year .cv-rows { padding: 0; }
-.cv-row  { display: flex; }
+.cv-row  { display: flex; break-inside: avoid; }   /* like Skynet: a bullet row is never cut across two pages */
 .cv-group.has-year .cv-row { min-height: 12.375pt; }   /* min, so a spilling bullet can still grow */
-/* Year rows: nudge the text down inside each cell (not the row), so the year column's line stays unbroken */
+/* Year rows: nudge the text down 1pt inside each cell, where Skynet prints it */
 .cv-group.has-year .cv-row > * { padding-top: 1pt; }
 
 .cv-bullet {
@@ -216,7 +221,10 @@
   padding-left: 12pt;                  /* room for the ■ marker */
 }
 .cv-group:not(.has-year) .cv-bullet { padding-right: 3pt; }
-.cv-group.has-year .cv-bullet { padding-right: 1.375pt; }
+/* A line with ₹ is 0.175pt taller in Skynet (it draws ₹ in DejaVu Sans, which
+   reaches higher than EB Garamond), measured on every ₹ line in two Skynet CVs. */
+.cv-group:not(.has-year) .cv-bullet:has(.cv-rs) { padding-top: 0.175pt; }
+.cv-group.has-year .cv-bullet { padding-right: 0; }
 .cv-mark {
   position: absolute;
   left: 4.65pt;
@@ -229,12 +237,31 @@
   vertical-align: top;
 }
 .cv-text.fit { white-space: nowrap; }  /* fits by the meter → never let rounding wrap it */
+/* Superscript ("10^th^"): Skynet prints it at 1/1.2 of the size (9.75 → 8.125pt),
+   raised by 33% of the font size (3.22pt). Must match SUP_SCALE in js/measure.js.
+   line-height 0 keeps the raised letters from making the line taller. */
+.cv-page sup {
+  font-size: 8.125pt;
+  vertical-align: 3.2175pt;
+  line-height: 0;
+}
 .cv-year {
   box-sizing: content-box;
   flex: none;
   width: 31.5pt;
-  border-left: 0.75pt solid #000;
+  margin-left: 0.75pt;                 /* room for the year column's line… */
   text-align: center;
+}
+/* …which is drawn once per group, full height, so it never breaks when
+   the bullets are centred next to a taller label. */
+.cv-group.has-year::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 31.5pt;
+  width: 0.75pt;
+  background: #000;
 }
 
 /* ---- Footer link ---- */
@@ -274,11 +301,17 @@
 .cv-bullet[data-path]:hover .cv-text { outline: 1px solid #0ea5e9; outline-offset: 0; }
 
 /* ---- Printing ---- */
-@page { size: A4; margin: 0; }
+/* Skynet leaves 3pt at the top and bottom of every printed page: page 2 and 3
+   start at y = 3pt, and nothing is ever printed below ~838.9pt (measured on
+   all multi-page Skynet PDFs). Same margins here = same page breaks.
+   Chrome lays pages out in whole pixels (A4 = 1123px = 842.25pt, margins
+   rounded to 0.75pt steps), so the nearest safe bottom margin is 3.75pt:
+   content stops at 838.5pt, just inside Skynet's 838.89pt. */
+@page { size: A4; margin: 3pt 0 3.75pt; }
 
 @media print {
   /* No forced A4 height when printing — avoids a blank 2nd page from rounding */
-  .cv-page { min-height: 0; }
+  .cv-page { min-height: 0; padding-top: 8.74pt; }   /* 11.74pt − the 3pt page margin: page 1 stays put */
   .cv-pagebreak { display: none; }
   .hl .cv-bullet .cv-text { background: none !important; }
   .cv-bullet[data-path]:hover .cv-text { outline: none; }
