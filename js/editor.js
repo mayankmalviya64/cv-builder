@@ -32,10 +32,13 @@ const Editor = (() => {
     return `<button type="button" class="icon-btn" data-action="${action}" data-path="${path}" title="${title}" aria-label="${title}" ${extra}>${symbol}</button>`;
   }
 
-  /** ↑ ↓ ✕ buttons for any item inside a list. */
+  /**
+   * ⠿ drag handle + ✕ button for any item inside a list.
+   * Drag the handle to reorder (or focus it and press ↑ / ↓ on the keyboard).
+   */
   function moveRemove(path, what) {
-    return iconBtn('move-up', path, '↑', `Move ${what} up`)
-      + iconBtn('move-down', path, '↓', `Move ${what} down`)
+    return `<button type="button" class="icon-btn drag-handle" data-action="drag" data-path="${path}"`
+      + ` title="Drag to reorder this ${what} (or focus and press ↑ / ↓)" aria-label="Reorder ${what}">⠿</button>`
       + iconBtn('remove', path, '✕', `Remove ${what}`, 'data-danger');
   }
 
@@ -54,7 +57,7 @@ const Editor = (() => {
       ? `<input type="text" class="bl-year" data-bind="${path}.year" value="${esc(bullet.year)}" placeholder="Year" aria-label="Year">`
       : '';
     return `
-      <div class="bl" data-path="${path}">
+      <div class="bl" data-path="${path}" data-item="${path}">
         <div class="bl-row">
           <span class="bl-mark">▪</span>
           <textarea class="bl-text" data-bind="${path}.text" data-kind="bullet" rows="1" spellcheck="true"
@@ -102,7 +105,7 @@ const Editor = (() => {
   function groupHtml(group, path, withYear) {
     const bullets = group.bullets.map((b, i) => bulletHtml(b, `${path}.bullets.${i}`, withYear)).join('');
     return `
-      <div class="group">
+      <div class="group" data-item="${path}">
         <div class="group-head">
           ${field('Category', `${path}.label`, group.label, { multiline: true, rows: 2, cls: 'grow', placeholder: 'e.g. Achievements' })}
           <div class="row-actions">${moveRemove(path, 'category')}</div>
@@ -116,7 +119,7 @@ const Editor = (() => {
   function academicBody(section, sPath) {
     const head = section.columns.map((c, i) => `<input type="text" data-bind="${sPath}.columns.${i}" value="${esc(c)}" aria-label="Column ${i + 1} heading">`).join('');
     const rows = section.rows.map((row, r) => `
-      <div class="acad-row">
+      <div class="acad-row" data-item="${sPath}.rows.${r}">
         ${row.map((cell, c) => `<input type="text" data-bind="${sPath}.rows.${r}.${c}" value="${esc(cell)}" placeholder="${esc(section.columns[c])}">`).join('')}
         <div class="row-actions">${moveRemove(`${sPath}.rows.${r}`, 'row')}</div>
       </div>`).join('');
@@ -133,7 +136,7 @@ const Editor = (() => {
       const ePath = `${sPath}.entries.${e}`;
       const groups = entry.groups.map((g, gi) => groupHtml(g, `${ePath}.groups.${gi}`, false)).join('');
       return `
-        <div class="entry">
+        <div class="entry" data-item="${ePath}">
           <div class="entry-head">
             <strong>Entry ${e + 1}</strong>
             <div class="row-actions">${moveRemove(ePath, 'entry')}</div>
@@ -188,7 +191,7 @@ const Editor = (() => {
     }
     const counts = section.type === 'academic' ? '' : `<span class="counts" data-counts="${sIndex}">${sectionCounts(sIndex)}</span>`;
     return `
-      <details class="card" data-sec="${sIndex}" ${closed.has(section) ? '' : 'open'}>
+      <details class="card" data-sec="${sIndex}" data-item="${sPath}" ${closed.has(section) ? '' : 'open'}>
         <summary>
           <span class="chev" aria-hidden="true"></span>
           <span class="sum-title">${esc(section.title) || 'Untitled'}</span>
@@ -408,8 +411,7 @@ const Editor = (() => {
     let changed = false;
     let focusAfter = null;
 
-    if (action === 'move-up') changed = moveItem(path, -1);
-    else if (action === 'move-down') changed = moveItem(path, +1);
+    if (action === 'drag') return; // dragging is handled by the pointer events below
     else if (action === 'remove') changed = removeItem(path);
     else if (action === 'add') {
       const list = getAt(cv, path);
@@ -441,9 +443,21 @@ const Editor = (() => {
     }
   }
 
-  /** Keyboard shortcuts inside a bullet. */
+  /** Keyboard shortcuts inside a bullet (and ↑ / ↓ on a focused drag handle). */
   function handleKeydown(event) {
     const el = event.target;
+    if (el.classList && el.classList.contains('drag-handle') && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      event.preventDefault();
+      const step = event.key === 'ArrowUp' ? -1 : 1;
+      if (moveItem(el.dataset.path, step)) {
+        const { parentPath, index } = splitPath(el.dataset.path);
+        render();
+        onChange('structure');
+        const moved = root.querySelector(`.drag-handle[data-path="${parentPath}.${index + step}"]`);
+        if (moved) moved.focus();
+      }
+      return;
+    }
     if (el.dataset.kind !== 'bullet') return;
     const bulletPath = el.dataset.bind.replace(/\.text$/, '');
 
@@ -488,6 +502,119 @@ const Editor = (() => {
     if (card.open) closed.delete(obj); else closed.add(obj);
   }
 
+  // ---------- drag and drop ----------
+  // Uses pointer events (mouse, trackpad and touch all work).
+  // 1. Press the ⠿ handle → remember the item and its siblings in the same list.
+  // 2. Move → a blue line shows where the item would land.
+  // 3. Release → move the item in the CV data and redraw. Esc cancels.
+  let drag = null;
+
+  function startDrag(event) {
+    const handle = event.target.closest('.drag-handle');
+    if (!handle || event.button > 0) return;
+    event.preventDefault(); // stop text selection and the <summary> toggle
+
+    const path = handle.dataset.path;
+    const { parentPath, index } = splitPath(path);
+    const item = root.querySelector(`[data-item="${path}"]`);
+    // Siblings = items in the SAME list (nested items have a different parent path).
+    const siblings = [...root.querySelectorAll('[data-item]')]
+      .filter(el => splitPath(el.dataset.item).parentPath === parentPath);
+    if (!item || siblings.length < 2) return;
+
+    const line = document.createElement('div');
+    line.className = 'drop-line';
+    document.body.appendChild(line);
+    item.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    handle.setPointerCapture(event.pointerId);
+
+    drag = { handle, item, siblings, parentPath, index, target: index, line, y: event.clientY, timer: null };
+    // While the pointer sits near the top/bottom edge, keep scrolling.
+    drag.timer = setInterval(autoScroll, 16);
+    updateDrop(event.clientY);
+
+    handle.addEventListener('pointermove', onDragMove);
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', cancelDrag);
+    window.addEventListener('keydown', onDragKey);
+  }
+
+  function onDragMove(event) {
+    if (!drag) return;
+    drag.y = event.clientY;
+    updateDrop(event.clientY);
+  }
+
+  /** Work out the drop position (0…n) from the pointer's height and draw the blue line there. */
+  function updateDrop(y) {
+    const { siblings, line, item } = drag;
+    let target = siblings.length;
+    for (let i = 0; i < siblings.length; i++) {
+      const r = siblings[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) { target = i; break; }
+    }
+    drag.target = target;
+    const ref = target < siblings.length ? siblings[target].getBoundingClientRect() : siblings[siblings.length - 1].getBoundingClientRect();
+    const lineY = target < siblings.length ? ref.top - 3 : ref.bottom + 1;
+    const box = item.getBoundingClientRect();
+    line.style.top = `${lineY}px`;
+    line.style.left = `${box.left}px`;
+    line.style.width = `${box.width}px`;
+  }
+
+  /** Scroll the editor (or the window on small screens) when dragging near its edges. */
+  function autoScroll() {
+    if (!drag) return;
+    const scroller = root.scrollHeight > root.clientHeight + 1 && getComputedStyle(root).overflowY !== 'visible' ? root : null;
+    const top = scroller ? scroller.getBoundingClientRect().top : 0;
+    const bottom = scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight;
+    const edge = 50;
+    let dy = 0;
+    if (drag.y < top + edge) dy = -Math.ceil((top + edge - drag.y) / 4);
+    else if (drag.y > bottom - edge) dy = Math.ceil((drag.y - (bottom - edge)) / 4);
+    if (!dy) return;
+    if (scroller) scroller.scrollTop += dy; else window.scrollBy(0, dy);
+    updateDrop(drag.y);
+  }
+
+  function onDragKey(event) {
+    if (event.key === 'Escape') cancelDrag();
+  }
+
+  function stopDragging() {
+    const d = drag;
+    drag = null;
+    clearInterval(d.timer);
+    d.line.remove();
+    d.item.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+    d.handle.removeEventListener('pointermove', onDragMove);
+    d.handle.removeEventListener('pointerup', endDrag);
+    d.handle.removeEventListener('pointercancel', cancelDrag);
+    window.removeEventListener('keydown', onDragKey);
+    return d;
+  }
+
+  function cancelDrag() {
+    if (drag) stopDragging();
+  }
+
+  function endDrag() {
+    if (!drag) return;
+    const { parentPath, index, target } = stopDragging();
+    // Dropping below its own old spot: the list shrinks by one first, so shift back by one.
+    const newIndex = target > index ? target - 1 : target;
+    if (newIndex === index) return;
+    const list = getAt(getCv(), parentPath);
+    const [moved] = list.splice(index, 1);
+    list.splice(newIndex, 0, moved);
+    render();
+    onChange('structure');
+    const el = root.querySelector(`[data-item="${parentPath}.${newIndex}"]`);
+    if (el) { el.classList.add('flash'); }
+  }
+
   function mount(rootEl, cvGetter, changeCallback) {
     root = rootEl;
     getCv = cvGetter;
@@ -496,6 +623,7 @@ const Editor = (() => {
     root.addEventListener('change', handleChange);
     root.addEventListener('click', handleClick);
     root.addEventListener('keydown', handleKeydown);
+    root.addEventListener('pointerdown', startDrag);
     root.addEventListener('toggle', handleToggle, true); // 'toggle' doesn't bubble, so capture it
     render();
   }

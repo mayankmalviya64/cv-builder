@@ -215,6 +215,15 @@ button, input, textarea { font: inherit; color: inherit; }
   color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1;
 }
 .icon-btn:hover { background: #f1f5f9; border-color: var(--line); color: var(--ink); }
+.drag-handle { cursor: grab; touch-action: none; font-size: 15px; letter-spacing: -1px; }
+.is-dragging, .is-dragging * { cursor: grabbing !important; user-select: none; }
+.dragging { opacity: 0.45; }
+.drop-line {
+  position: fixed; height: 3px; border-radius: 2px;
+  background: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+  pointer-events: none; z-index: 1000;
+}
+.card.flash, .group.flash, .entry.flash, .acad-row.flash { animation: flash 1.2s ease-out; }
 .icon-btn[data-danger]:hover { background: var(--over-bg); color: var(--over); border-color: #fecaca; }
 .add-btn {
   align-self: flex-start;
