@@ -26,16 +26,30 @@
    like the ₂ in "CO₂", which then show up in a wider fallback font. */
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014c') format('woff2');
+  src: url('../fonts/EBGaramond-Regular.woff2?v=20261014d') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'EB Garamond';
-  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014c') format('woff2');
+  src: url('../fonts/EBGaramond-Bold.woff2?v=20261014d') format('woff2');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../fonts/EBGaramond-Italic.woff2?v=20261014d') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../fonts/EBGaramond-BoldItalic.woff2?v=20261014d') format('woff2');
+  font-weight: 700;
+  font-style: italic;
   font-display: swap;
 }
 
@@ -59,6 +73,7 @@
   print-color-adjust: exact;
 }
 .cv-page b { font-weight: 700; }
+.cv-page i { font-style: italic; }
 
 /* ₹ — Skynet's EB Garamond has no rupee sign, so it borrows DejaVu Sans,
    which is wider. We keep the EB Garamond glyph but give it DejaVu's width. */

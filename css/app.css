@@ -305,3 +305,7 @@ button, input, textarea { font: inherit; color: inherit; }
   .cv-scaler .cv-page { transform: none !important; box-shadow: none; }
 }
 .small-note { margin: 0; font-size: 12px; }
+
+/* Undo / redo buttons in the top bar */
+.btn.icon { padding: 0 10px; font-size: 17px; }
+.btn:disabled { opacity: 0.4; cursor: default; }

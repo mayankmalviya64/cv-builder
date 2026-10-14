@@ -25,10 +25,15 @@ function rupeeHtml(html) {
   return html.replace(/₹/g, '<span class="cv-rs">₹</span>');
 }
 
-/** Bullet text → HTML, turning **bold** into <b>bold</b>. */
+/** Bullet text → HTML, turning **bold** into <b>bold</b> and _italic_ into <i>italic</i>. */
 function richText(text) {
   return parseBold(normalizeSpaces(text))
-    .map(p => (p.bold ? `<b>${rupeeHtml(escapeHtml(p.text))}</b>` : rupeeHtml(escapeHtml(p.text))))
+    .map(p => {
+      let html = rupeeHtml(escapeHtml(p.text));
+      if (p.italic) html = `<i>${html}</i>`;
+      if (p.bold) html = `<b>${html}</b>`;
+      return html;
+    })
     .join('');
 }
 

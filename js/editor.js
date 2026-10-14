@@ -65,6 +65,7 @@ const Editor = (() => {
           ${year}
           <div class="bl-actions">
             ${iconBtn('bold', path, '<b>B</b>', 'Bold the selected words (Ctrl/⌘+B)')}
+            ${iconBtn('italic', path, '<i>I</i>', 'Italicise the selected words (Ctrl/⌘+I)')}
             ${moveRemove(path, 'bullet')}
           </div>
         </div>
@@ -245,8 +246,14 @@ const Editor = (() => {
   }
 
   // ---------- build everything ----------
-  function render() {
+  function render(keepClosed) {
     const cv = getCv();
+    // After undo/redo the CV objects are new: re-collapse cards by their titles.
+    if (keepClosed) {
+      cv.sections.forEach(sec => { if (keepClosed.includes(sec.title)) closed.add(sec); });
+      if (keepClosed.includes('#personal')) closed.add(cv.personal);
+      footerClosed = keepClosed.includes('#footer');
+    }
     const scrollTop = root.scrollTop;
     root.innerHTML = personalHtml(cv)
       + cv.sections.map(sectionHtml).join('')
@@ -323,21 +330,32 @@ const Editor = (() => {
 
   /** Wrap the selected words of a bullet in **…** (or unwrap if already bold). */
   function toggleBold(path) {
+    toggleMark(path, '**', 'bold');
+  }
+
+  /** Wrap the selected words of a bullet in _…_ (or unwrap if already italic). */
+  function toggleItalic(path) {
+    toggleMark(path, '_', 'italicise');
+  }
+
+  /** Shared by bold and italic: add or remove `mark` around the selection. */
+  function toggleMark(path, mark, verb) {
     const el = root.querySelector(`[data-bind="${path}.text"]`);
     if (!el) return;
     const { selectionStart: a, selectionEnd: b, value } = el;
     if (a === b) {
-      flashMessage(el, 'Select the words to bold first');
+      flashMessage(el, `Select the words to ${verb} first`);
       return;
     }
+    const n = mark.length;
     const picked = value.slice(a, b);
     let next;
-    if (/^\*\*.*\*\*$/.test(picked)) {
-      next = value.slice(0, a) + picked.slice(2, -2) + value.slice(b);   // already bold → unbold
-    } else if (value.slice(a - 2, a) === '**' && value.slice(b, b + 2) === '**') {
-      next = value.slice(0, a - 2) + picked + value.slice(b + 2);        // selection inside ** ** → unbold
+    if (picked.length > 2 * n && picked.startsWith(mark) && picked.endsWith(mark)) {
+      next = value.slice(0, a) + picked.slice(n, -n) + value.slice(b);   // already marked → unmark
+    } else if (value.slice(a - n, a) === mark && value.slice(b, b + n) === mark) {
+      next = value.slice(0, a - n) + picked + value.slice(b + n);        // selection inside the marks → unmark
     } else {
-      next = value.slice(0, a) + '**' + picked.replace(/\*\*/g, '') + '**' + value.slice(b);
+      next = value.slice(0, a) + mark + picked.split(mark).join('') + mark + value.slice(b);
     }
     el.value = next;
     setAt(getCv(), path + '.text', next);
@@ -436,6 +454,8 @@ const Editor = (() => {
       changed = true;
     } else if (action === 'bold') {
       toggleBold(path);
+    } else if (action === 'italic') {
+      toggleItalic(path);
     } else if (action === 'tweak') {
       const text = getAt(cv, path + '.text');
       const tweak = TWEAKS[Number(btn.dataset.index)];
@@ -474,10 +494,15 @@ const Editor = (() => {
     if (el.dataset.kind !== 'bullet') return;
     const bulletPath = el.dataset.bind.replace(/\.text$/, '');
 
-    // Ctrl/⌘ + B → bold
+    // Ctrl/⌘ + B → bold,  Ctrl/⌘ + I → italic
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b') {
       event.preventDefault();
       toggleBold(bulletPath);
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'i') {
+      event.preventDefault();
+      toggleItalic(bulletPath);
       return;
     }
     // Enter → new bullet just below (a CV bullet never contains a line break)
@@ -514,6 +539,86 @@ const Editor = (() => {
     const obj = key === 'personal' ? getCv().personal : getCv().sections[Number(key)];
     if (!obj) return;
     if (card.open) closed.delete(obj); else closed.add(obj);
+  }
+
+  // ---------- paste with bold / italic (Google Docs, Sheets, Word, web pages) ----------
+  // Copied text arrives with its formatting as HTML. We keep ONLY bold and italic
+  // (no fonts, sizes or colours) and turn them into **bold** / _italic_ marks.
+  // Several pasted lines (paragraphs, list items, sheet rows) become several bullets.
+
+  /** HTML from the clipboard → lines, each a list of {text, bold, italic} pieces. */
+  function htmlToLines(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const lines = [[]];
+    const newLine = () => { if (lines[lines.length - 1].length) lines.push([]); };
+    const BLOCK = /^(P|DIV|LI|TR|H[1-6]|BLOCKQUOTE|PRE|UL|OL|TABLE|TBODY|SECTION|ARTICLE)$/;
+
+    function walk(node, bold, italic) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.replace(/[\s\u00a0]+/g, ' ');
+        if (text.trim() || text === ' ') lines[lines.length - 1].push({ text, bold, italic });
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = node.tagName;
+      if (/^(STYLE|SCRIPT|META|TITLE|HEAD)$/.test(tag)) return;
+      if (tag === 'BR') { newLine(); return; }
+      // Tags first (<b>, <strong>, <i>, <em>), then inline styles, which win.
+      // (Google Docs wraps everything in <b style="font-weight:normal">, so styles must win.)
+      if (/^(B|STRONG|TH|H[1-6])$/.test(tag)) bold = true;
+      if (/^(I|EM|CITE)$/.test(tag)) italic = true;
+      const st = node.style || {};
+      if (st.fontWeight) bold = st.fontWeight === 'bold' || st.fontWeight === 'bolder' || Number(st.fontWeight) >= 600;
+      if (st.fontStyle) italic = /italic|oblique/.test(st.fontStyle);
+      const block = BLOCK.test(tag);
+      if (block) newLine();
+      node.childNodes.forEach(child => walk(child, bold, italic));
+      if (tag === 'TD' || tag === 'TH') lines[lines.length - 1].push({ text: ' ', bold: false, italic: false }); // cells in a row: space apart
+      if (block) newLine();
+    }
+    walk(doc.body, false, false);
+    return lines.map(pieces => piecesToMarkup(pieces)).filter(Boolean);
+  }
+
+  /** Remove a typed bullet sign at the start of a pasted line ("• ", "- ", "▪ " …). */
+  function stripBulletSign(text) {
+    return text.replace(/^((?:\*\*|_)*)\s*[•▪■●◦‣∙·▸►➢✓✔–\-*]\s+/, '$1');
+  }
+
+  function handlePaste(event) {
+    const el = event.target;
+    if (el.dataset?.kind !== 'bullet') return; // other fields: normal plain paste
+    const data = event.clipboardData;
+    if (!data) return;
+    const html = data.getData('text/html');
+    const plain = data.getData('text/plain');
+    let lines = html ? htmlToLines(html) : plain.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    lines = lines.map(stripBulletSign).filter(l => stripBold(l).trim());
+    if (!lines.length) return;
+    event.preventDefault();
+
+    const bulletPath = el.dataset.bind.replace(/\.text$/, '');
+    // First line goes where the cursor is (replacing any selected text).
+    const { selectionStart: a, selectionEnd: b } = el;
+    const before = el.value.slice(0, a);
+    const glue = before && !/\s$/.test(before) && a === el.value.length ? ' ' : '';
+    el.setRangeText(glue + lines[0], a, b, 'end');
+    setAt(getCv(), el.dataset.bind, el.value);
+
+    if (lines.length === 1) {
+      afterTextChange(el, el.dataset.bind);
+      onChange('structure'); // a paste is its own undo step
+      return;
+    }
+    // More lines: each becomes a new bullet just below this one.
+    const { parentPath, index } = splitPath(bulletPath);
+    const list = getAt(getCv(), parentPath);
+    const withYear = 'year' in list[index];
+    const extra = lines.slice(1).map(text => (withYear ? { text, year: '' } : { text }));
+    list.splice(index + 1, 0, ...extra);
+    render();
+    onChange('structure');
+    focusBullet(`${parentPath}.${index + extra.length}`);
   }
 
   // ---------- drag and drop ----------
@@ -638,11 +743,18 @@ const Editor = (() => {
     root.addEventListener('click', handleClick);
     root.addEventListener('keydown', handleKeydown);
     root.addEventListener('pointerdown', startDrag);
+    root.addEventListener('paste', handlePaste);
     root.addEventListener('toggle', handleToggle, true); // 'toggle' doesn't bubble, so capture it
     render();
   }
 
-  return { mount, render, focusBullet };
+  /** Titles of the collapsed cards, so undo/redo can keep them collapsed. */
+  function closedTitles() {
+    return [...root.querySelectorAll('details.card:not([open])')].map(d => d.dataset.sec === 'personal' || d.dataset.sec === 'footer'
+      ? `#${d.dataset.sec}` : (getCv().sections[Number(d.dataset.sec)] || {}).title);
+  }
+
+  return { mount, render, focusBullet, closedTitles };
 })();
 
 /**
