@@ -56,8 +56,8 @@ function updateImportPrompt() {
   els.importBtn.classList.toggle('pulse', showingSample);
   if (showingSample && els.banner.hidden) {
     els.banner.className = 'banner no-print cta';
-    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) or a Word file, and every section fills in for you.</span>'
-      + '<label class="btn small import-cta" for="import-file">⬆ Import your CV (PDF / Word)</label>';
+    // Just the message: the pulsing Import button in the top bar is the thing to click.
+    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) or a Word file, and every section fills in for you.</span>';
     els.banner.hidden = false;
   } else if (!showingSample && els.banner.classList.contains('cta')) {
     showBanner(''); // they've started editing or imported: hide the prompt
