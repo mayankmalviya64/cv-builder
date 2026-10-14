@@ -56,8 +56,8 @@ function updateImportPrompt() {
   els.importBtn.classList.toggle('pulse', showingSample);
   if (showingSample && els.banner.hidden) {
     els.banner.className = 'banner no-print cta';
-    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) and every section fills in for you.</span>'
-      + '<label class="btn small import-cta" for="import-file">⬆ Import your CV (PDF)</label>';
+    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) or a Word file, and every section fills in for you.</span>'
+      + '<label class="btn small import-cta" for="import-file">⬆ Import your CV (PDF / Word)</label>';
     els.banner.hidden = false;
   } else if (!showingSample && els.banner.classList.contains('cta')) {
     showBanner(''); // they've started editing or imported: hide the prompt
@@ -237,7 +237,7 @@ function importSummary(imported, source) {
   let bullets = 0;
   forEachBullet(imported, () => { bullets++; });
   const names = imported.sections.map(s => s.title).join(', ');
-  const from = source === 'pdf' ? 'Imported from PDF' : 'Imported';
+  const from = source === 'pdf' ? 'Imported from PDF' : source === 'word' ? 'Imported from Word' : 'Imported';
   return `${from}: ${imported.sections.length} sections (${names}), ${bullets} bullets. Please check it over — press ⌘Z / Ctrl+Z to undo the import.`;
 }
 
