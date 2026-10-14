@@ -90,13 +90,13 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
+                  "text": "Identified **M1** drop as primary churn driver via structured RCA & **30% M12** industry benchmark shaping FY26 strategy"
+                },
+                {
                   "text": "Derived **15+ churn** insights through hypothesis-driven root cause analysis for retained-vs-churned cohort of **50K+ users**"
                 },
                 {
                   "text": "Architected **hyperpersonalization** based behavioral analytics model automating execution of threshold deviation triggers"
-                },
-                {
-                  "text": "Identified **M1** drop as primary churn driver via structured RCA & **30% M12** industry benchmark shaping FY26 strategy"
                 }
               ]
             }
@@ -278,15 +278,15 @@ const SAMPLE_CV = {
             },
             {
               "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
-              "year": ""
+              "year": "2026"
             },
             {
               "text": "Authored **80+** page case-led **marketing compendium** on positioning, portfolio and pricing for **1000+** students",
-              "year": ""
+              "year": "2026"
             },
             {
               "text": "Secured **₹1.2L+** in prizes & sponsorships & **12** Live projects via **B2B** negotiations, facilitated signing of **3 MoUs**",
-              "year": ""
+              "year": "2026"
             }
           ]
         }
