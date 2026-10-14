@@ -7,10 +7,12 @@
   <meta name="description" content="Build a one-page CV where every bullet fills its line to the brim — live line-density meter, A4 preview and PDF export.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f172a'/><rect x='8' y='9' width='16' height='2.4' fill='white'/><rect x='8' y='15' width='16' height='2.4' fill='%2310b981'/><rect x='8' y='21' width='11' height='2.4' fill='white'/></svg>">
 
-  <!-- Fonts: EB Garamond for the CV itself, Inter for the app controls -->
+  <!-- Fonts: EB Garamond for the CV (hosted here, see css/cv.css), Inter for the app controls -->
+  <link rel="preload" href="fonts/EBGaramond-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/EBGaramond-Bold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/cv.css">
@@ -67,6 +69,7 @@
   </main>
 
   <!-- Scripts: order matters (each file uses the ones above it) -->
+  <script src="js/metrics.js"></script>
   <script src="js/measure.js"></script>
   <script src="js/sample.js"></script>
   <script src="js/preview.js"></script>
