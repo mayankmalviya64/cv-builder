@@ -13,6 +13,10 @@
       also measured from Skynet PDFs.
 
    A bullet is at the "brim" when it fills 98%–100% of one line.
+
+   Marks inside a bullet: **bold**, _italic_ and ^superscript^ (the "th" in
+   "10^th^"). Skynet prints superscript at 1/1.2 of the size (8.125pt),
+   raised by 33% of the font size, so it is narrower than normal text.
    ===================================================================== */
 
 // ---- Font + page geometry (all in points, 1pt = 1/72 inch) ----------
@@ -32,8 +36,15 @@ const LAYOUT = {
   markerOffsetPt: 4.65,  // from the category border to the ■ marker
   rightPadPt: 3,         // gap between the text and the right border (no-year rows)
   yearWidthPt: 31.5,     // year column (border not included)
-  yearGapPt: 1.375,      // gap between the text and the year column's border
+  // Gap between the text and the year column's border: none. Text may run right
+  // up to the border (a Skynet line of 422.83pt printed on one line, and the year
+  // border starts 422.875pt after the text start).
+  yearGapPt: 0,
 };
+
+// Superscript ("10^th^") is printed at 1/1.2 of the normal size (CSS "smaller"):
+// 9.75pt → 8.125pt in Skynet PDFs, raised by 33% of the font size.
+const SUP_SCALE = 1 / 1.2;
 
 // The "brim" band: a bullet should fill at least 98% of its line
 // but never go past 100% (that would wrap onto a second line).
@@ -45,9 +56,10 @@ const AVG_CHAR_PX = 5.4;
 
 /**
  * Usable width of a bullet's text, in points — Skynet's real line widths:
- * 550 − 82.125 − 0.75 − 12 − 3                 = 452.125pt  (Internship / Projects)
- * 550 − 82.125 − 0.75 − 12 − 1.375 − 0.75 − 31.5 = 421.5pt   (POR / Awards, with year)
- * Proof from Skynet PDFs: lines of 452.1pt and 421.5pt print on one line.
+ * 550 − 82.125 − 0.75 − 12 − 3         = 452.125pt  (Internship / Projects)
+ * 550 − 82.125 − 0.75 − 12 − 0.75 − 31.5 = 422.875pt  (POR / Awards, with year)
+ * Proof from Skynet PDFs (all 14 on file): the widest one-line bullets are
+ * 452.08pt and 422.83pt; the narrowest year-row bullet that wrapped needed 428.1pt.
  */
 function bulletCapacityPt(hasCategory, hasYear) {
   let width = LAYOUT.boxInnerWidthPt - LAYOUT.bulletIndentPt;
@@ -105,15 +117,19 @@ function charUnits(ch, isBold, isItalic) {
   return measureCtx.measureText(ch).width * 10; // 100px font → ×10 = units per 1000
 }
 
-/** Width in px of `text` in the CV font (regular/bold, upright/italic), the way Skynet adds it up. */
-function measureWidthPx(text, isBold, isItalic = false) {
+/**
+ * Width in px of `text` in the CV font (regular/bold, upright/italic), the way Skynet adds it up.
+ * isSup = superscript: same letters, drawn at the smaller superscript size.
+ */
+function measureWidthPx(text, isBold, isItalic = false, isSup = false) {
   if (!text) return 0;
-  const key = (isBold ? 'b' : 'r') + (isItalic ? 'i|' : '|') + text;
+  const key = (isBold ? 'b' : 'r') + (isItalic ? 'i' : '') + (isSup ? 's|' : '|') + text;
   if (widthCache.has(key)) return widthCache.get(key);
 
   let units = 0;
   for (const ch of text) units += charUnits(ch, isBold, isItalic); // for…of walks real characters (₹, emoji…)
-  const widthPt = (units / 1000) * CV_FONT_SIZE_PT;
+  const sizePt = isSup ? CV_FONT_SIZE_PT * SUP_SCALE : CV_FONT_SIZE_PT;
+  const widthPt = (units / 1000) * sizePt;
   const width = widthPt * PX_PER_PT;
 
   widthCache.set(key, width);
@@ -130,49 +146,54 @@ function normalizeSpaces(text) {
 /**
  * Split text with formatting marks into pieces:
  *   "Grew **50K+ users** _fast_" →
- *   [{text:'Grew ', bold:false, italic:false}, {text:'50K+ users', bold:true, italic:false},
- *    {text:' ', bold:false, italic:false}, {text:'fast', bold:false, italic:true}]
+ *   [{text:'Grew ', bold:false, italic:false, sup:false}, {text:'50K+ users', bold:true, …},
+ *    {text:' ', …}, {text:'fast', bold:false, italic:true, sup:false}]
  * Rules: **double stars** switch bold on/off, _underscores_ switch italic on/off,
- * and they can be combined: **_bold and italic_**.
+ * ^carets^ switch superscript on/off ("10^th^"), and they can be combined: **_bold and italic_**.
  * A mark with no partner (e.g. a lone "_" in "snake_case") is just printed as-is.
  */
 function parseBold(text) {
-  const parts = String(text || '').split(/(\*\*|_)/);
+  const parts = String(text || '').split(/(\*\*|_|\^)/);
   // Count each kind of mark; if one is left without a partner, the last one is plain text.
-  const total = { '**': 0, _: 0 };
+  const total = { '**': 0, _: 0, '^': 0 };
   parts.forEach(p => { if (p in total) total[p]++; });
-  const seen = { '**': 0, _: 0 };
+  const seen = { '**': 0, _: 0, '^': 0 };
   const pieces = [];
   let bold = false;
   let italic = false;
+  let sup = false;
   for (const part of parts) {
     if (part in total) {
       seen[part]++;
       const unpaired = total[part] % 2 === 1 && seen[part] === total[part];
       if (!unpaired) {
-        if (part === '**') bold = !bold; else italic = !italic;
+        if (part === '**') bold = !bold;
+        else if (part === '_') italic = !italic;
+        else sup = !sup;
         continue;
       }
     }
     if (!part) continue;
     const last = pieces[pieces.length - 1];
-    if (last && last.bold === bold && last.italic === italic) last.text += part;
-    else pieces.push({ text: part, bold, italic });
+    if (last && last.bold === bold && last.italic === italic && last.sup === sup) last.text += part;
+    else pieces.push({ text: part, bold, italic, sup });
   }
   return pieces;
 }
 
 /**
- * The reverse: pieces [{text, bold, italic}] → text with ** and _ marks.
+ * The reverse: pieces [{text, bold, italic, sup}] → text with **, _ and ^ marks.
  * Used when importing a PDF and when pasting from Google Docs / Sheets.
  * Spaces keep their own boldness (a bold space is wider, so it matters for the
  * line check); italic doesn't change a space's width, so spaces only stay
  * italic when the words on both sides are italic (keeps the marks tidy).
+ * Superscript spaces follow the same rule (Skynet prints the space after
+ * "10^th^" at the normal size).
  */
 function piecesToMarkup(pieces) {
   // 1. Per-character styles, so neighbouring pieces with the same style merge.
   const chars = [];
-  for (const p of pieces) for (const ch of String(p.text).replace(/\s/g, ' ')) chars.push({ ch, bold: !!p.bold, italic: !!p.italic });
+  for (const p of pieces) for (const ch of String(p.text).replace(/\s/g, ' ')) chars.push({ ch, bold: !!p.bold, italic: !!p.italic, sup: !!p.sup });
   // 2. Tidy the line: no spaces at the ends, no double spaces.
   while (chars.length && chars[0].ch === ' ') chars.shift();
   while (chars.length && chars[chars.length - 1].ch === ' ') chars.pop();
@@ -182,23 +203,28 @@ function piecesToMarkup(pieces) {
     const before = tidy[i - 1];
     const after = tidy[i + 1];
     c.italic = !!(before && after && before.italic && after.italic);
+    c.sup = !!(before && after && before.sup && after.sup);
   });
   // 3. Write the marks wherever the style changes.
   let out = '';
   let bold = false;
   let italic = false;
+  let sup = false;
   for (const c of tidy) {
-    if (c.italic !== italic && italic) { out += '_'; italic = false; } // close italic first (tidier nesting)
+    if (c.sup !== sup && sup) { out += '^'; sup = false; }             // close superscript first (tidier nesting)
+    if (c.italic !== italic && italic) { out += '_'; italic = false; } // then italic
     if (c.bold !== bold) { out += '**'; bold = c.bold; }
     if (c.italic !== italic) { out += '_'; italic = c.italic; }
+    if (c.sup !== sup) { out += '^'; sup = c.sup; }
     out += c.ch;
   }
+  if (sup) out += '^';
   if (italic) out += '_';
   if (bold) out += '**';
   return out;
 }
 
-/** Plain text without the ** and _ marks (handy for character counts). */
+/** Plain text without the **, _ and ^ marks (handy for character counts). */
 function stripBold(text) {
   return parseBold(text).map(p => p.text).join('');
 }
@@ -230,10 +256,16 @@ function analyzeBullet(rawText, capacityPt) {
     piece.text.split(/(\s+)/).forEach(chunk => {
       if (!chunk) return;
       if (/^\s+$/.test(chunk)) {
-        tokens.push({ text: chunk, isSpace: true, w: measureWidthPx(chunk, piece.bold, piece.italic) });
+        tokens.push({ text: chunk, isSpace: true, w: measureWidthPx(chunk, piece.bold, piece.italic, piece.sup) });
       } else {
         chunk.split(/(?<=[-\/])/).forEach(part => {
-          if (part) tokens.push({ text: part, isSpace: false, w: measureWidthPx(part, piece.bold, piece.italic) });
+          if (!part) return;
+          const w = measureWidthPx(part, piece.bold, piece.italic, piece.sup);
+          // A word whose style changes midway ("10^th^", "**5**x") is still ONE word:
+          // a line can't break inside it, so glue it to the piece before.
+          const prev = tokens[tokens.length - 1];
+          if (prev && !prev.isSpace && !/[-\/]$/.test(prev.text)) { prev.text += part; prev.w += w; }
+          else tokens.push({ text: part, isSpace: false, w });
         });
       }
     });

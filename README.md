@@ -10,7 +10,7 @@ Build a one-page A4 CV where **every bullet fills exactly one line, to the brim*
   | Section style | Line capacity |
   |---|---|
   | Experience / Projects (category column) | 452.125pt |
-  | POR / Awards (category + year column) | 421.5pt |
+  | POR / Awards (category + year column) | 422.875pt |
 
   A bullet scores as **at the brim** when it fills 98–100% of its line. Underfilled bullets show how many px or characters to add. Bullets that spill onto a 2nd line show how much to trim and flag orphan words.
 - **One-click micro-tweaks**, e.g. "and" → "&" or "Cr" → "Crore", each showing the fill % it would give.
@@ -22,12 +22,12 @@ Build a one-page A4 CV where **every bullet fills exactly one line, to the brim*
 - **Include / exclude tick marks** ☑ on every section, entry, category and bullet. Untick to leave it off the CV (and out of the fit counts) without deleting it; tick it again to bring it back.
 - **New visitors are asked to import their CV**: while the sample CV is on screen, the green "Import your CV (PDF / Word)" button pulses and a banner asks for it. Returning visitors simply continue with their own saved CV.
 - **Undo / redo everything**: ⌘Z / Ctrl+Z and ⌘⇧Z / Ctrl+Y, or the ↶ ↷ buttons. Typing, adding, deleting, dragging, pasting and even a whole import can be undone.
-- **Paste from Google Docs / Sheets / Word** keeps **bold** and _italic_ only (no fonts, sizes or colours). Several pasted lines or sheet rows become several bullets.
+- **Paste from Google Docs / Sheets / Word** keeps **bold**, _italic_ and superscript only (no fonts, sizes or colours). Several pasted lines or sheet rows become several bullets.
 - **Autosave** in your browser, plus **Export/Import** as a `.json` file. A `.json` from an older version or with odd sections is repaired instead of rejected.
 
 ## Writing tips inside the editor
 
-- Wrap words in `**double stars**` to make them **bold** (or select them and press **Ctrl/⌘+B**), and in `_underscores_` to make them _italic_ (**Ctrl/⌘+I**). They combine: `**_bold italic_**`. A single `_` with no partner (like `snake_case`) is printed as-is.
+- Wrap words in `**double stars**` to make them **bold** (or select them and press **Ctrl/⌘+B**), and in `_underscores_` to make them _italic_ (**Ctrl/⌘+I**). They combine: `**_bold italic_**`. A single `_` with no partner (like `snake_case`) is printed as-is. Wrap letters in `^carets^` for superscript, like the “th” in `10^th^` (**Ctrl/⌘+.**); it is measured at Skynet's smaller superscript size.
 - A bold space is wider than a normal one (2.31pt vs 1.95pt). If Skynet bolds the space after a word (that happens when the selection you bolded included it), write it inside the stars, `**CRM **personalization`, so the meter counts it the same way.
 - **Enter** adds a new bullet below. **Backspace** in an empty bullet deletes it.
 
