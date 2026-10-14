@@ -212,7 +212,8 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
+                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint",
+                  "hidden": true
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
@@ -348,8 +349,7 @@ const SAMPLE_CV = {
             },
             {
               "text": "Acquired certification of **Lean Six Sigma Green Belt** online from Advanced Innovation Group Pro Excellence",
-              "year": "2025",
-              "hidden": true
+              "year": "2025"
             }
           ]
         },
