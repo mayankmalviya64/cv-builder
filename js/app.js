@@ -76,10 +76,10 @@ function updateStats() {
   });
   const score = counts.total ? Math.round((counts.brim / counts.total) * 100) : 0;
   els.stats.innerHTML = `
-    <span class="stat score" title="Share of bullets sitting at the brim">${score}%<small>brim score</small></span>
-    <span class="stat st-brim" title="98–100% of the line">${counts.brim}<small>brim</small></span>
-    <span class="stat st-under" title="Below 98% — add a few words">${counts.under}<small>under</small></span>
-    <span class="stat st-over" title="Wraps to a 2nd line — trim">${counts.over}<small>over</small></span>`;
+    <span class="stat score" title="Share of bullets that fill their line perfectly">${score}%<small>fit score</small></span>
+    <span class="stat st-brim" title="Fills 98–100% of its line">${counts.brim}<small>perfect</small></span>
+    <span class="stat st-under" title="Under 98% of the line: add a few words">${counts.under}<small>too short</small></span>
+    <span class="stat st-over" title="Goes onto a 2nd line: cut a few letters">${counts.over}<small>too long</small></span>`;
 }
 
 // ---------- scale the A4 page to fit the right-hand pane ----------

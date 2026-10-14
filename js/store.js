@@ -77,6 +77,7 @@ function importCvFile(file) {
 // Numbers are array positions: 'sections.2.groups.0' = 3rd section, 1st group.
 
 function getAt(obj, path) {
+  if (path === '') return obj; // empty path = the object itself (needed for top-level fields like 'footer')
   return path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), obj);
 }
 

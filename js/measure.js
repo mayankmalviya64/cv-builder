@@ -213,23 +213,40 @@ function analyzeBullet(rawText, capacityPt) {
   if (lines.length > 1 || fill > BRIM_MAX) {
     result.status = 'over';
     result.deltaPx = widthPx - capacityPx;
+    // The word(s) pushed onto the extra line, e.g. “overhaul”
     const spill = lines.length > 1
       ? lines[lines.length - 1].filter(t => !t.isSpace).map(t => t.text).join(' ')
       : '';
     const spillWords = spill ? spill.split(' ').length : 0;
-    result.message = `Spills onto ${lines.length} lines — trim ~${Math.ceil(result.deltaPx)}px (~${Math.ceil(result.deltaPx / AVG_CHAR_PX)} chars)`
-      + (spillWords && spillWords <= 3 ? `. Orphan: “${spill}”` : '.');
+    const cut = lettersFor(result.deltaPx);
+    result.message = spillWords && spillWords <= 3
+      ? `Too long: “${spill}” falls onto a ${ordinal(lines.length)} line. Cut about ${cut} to pull it back up.`
+      : `Too long: runs onto ${lines.length} lines. Cut about ${cut}.`;
   } else if (fill >= BRIM_MIN) {
     result.status = 'brim';
     result.deltaPx = 0;
-    result.message = `At the brim — ${Math.max(0, capacityPx - widthPx).toFixed(0)}px spare.`;
+    const room = Math.floor(Math.max(0, capacityPx - widthPx) / AVG_CHAR_PX);
+    result.message = room > 0
+      ? `Perfect fit: fills the line (room for ${room === 1 ? '1 more letter' : `${room} more letters`}).`
+      : 'Perfect fit: fills the line exactly.';
   } else {
     result.status = 'under';
     result.deltaPx = capacityPx * (BRIM_MIN / 100) - widthPx;
-    result.message = `Underfilled — add ~${Math.ceil(result.deltaPx)}px (~${Math.ceil(result.deltaPx / AVG_CHAR_PX)} chars) to reach the brim.`;
+    result.message = `A bit short: add about ${lettersFor(result.deltaPx)} to fill the line.`;
   }
-  if (fontStatus === 'fallback') result.message += ' (preview font not loaded; this number is still exact)';
+  if (fontStatus === 'fallback') result.message += ' (The preview font didn’t load, but this check is still exact.)';
   return result;
+}
+
+/** "about 4 letters" from a width in px (one letter ≈ AVG_CHAR_PX wide). */
+function lettersFor(px) {
+  const n = Math.max(1, Math.ceil(px / AVG_CHAR_PX));
+  return n === 1 ? '1 letter' : `${n} letters`;
+}
+
+/** 2 → "2nd", 3 → "3rd" … */
+function ordinal(n) {
+  return n + (n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 }
 
 // ---- Micro-tweaks -----------------------------------------------------

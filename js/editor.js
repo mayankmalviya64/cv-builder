@@ -171,9 +171,9 @@ const Editor = (() => {
       const st = analyzeBullet(bullet.text, capacityPt).status;
       if (st in counts) counts[st]++;
     });
-    return `<span class="st-brim" title="At the brim">✓ ${counts.brim}</span>`
-      + (counts.under ? `<span class="st-under" title="Underfilled">▲ ${counts.under}</span>` : '')
-      + (counts.over ? `<span class="st-over" title="Spills over">▼ ${counts.over}</span>` : '');
+    return `<span class="st-brim" title="Perfect fit: fills its line">✓ ${counts.brim}</span>`
+      + (counts.under ? `<span class="st-under" title="Too short: add a few words">▲ ${counts.under}</span>` : '')
+      + (counts.over ? `<span class="st-over" title="Too long: goes onto a 2nd line">▼ ${counts.over}</span>` : '');
   }
 
   function sectionHtml(section, sIndex) {
@@ -222,12 +222,24 @@ const Editor = (() => {
             ${field('Line 2', 'personal.line2', p.line2, { placeholder: 'MBA, Batch 25 - 27' })}
           </div>
           ${field('Headline bar', 'headline', cv.headline, { multiline: true, rows: 2, placeholder: 'Winner | Strategist | Builder' })}
-          ${field('Footer link', 'footer', cv.footer, { placeholder: 'www.linkedin.com/in/you' })}
           <div class="logo-row">
             <span class="field-label">Logo (top right)</span>
             ${logo}
             <label class="btn small">Upload<input type="file" accept="image/*" data-action="logo-upload" hidden></label>
           </div>
+        </div>
+      </details>`;
+  }
+
+  /** Footer: the link printed at the bottom of the page (usually LinkedIn). */
+  let footerClosed = false;
+  function footerHtml(cv) {
+    return `
+      <details class="card" data-sec="footer" ${footerClosed ? '' : 'open'}>
+        <summary><span class="chev" aria-hidden="true"></span><span class="sum-title">Footer</span><span class="badge">LinkedIn link at the bottom</span></summary>
+        <div class="card-body">
+          ${field('Link', 'footer', cv.footer, { placeholder: 'www.linkedin.com/in/your-name' })}
+          <p class="muted small-note">Printed in blue at the bottom centre and clickable in the PDF. Leave it empty to hide it.</p>
         </div>
       </details>`;
   }
@@ -238,6 +250,7 @@ const Editor = (() => {
     const scrollTop = root.scrollTop;
     root.innerHTML = personalHtml(cv)
       + cv.sections.map(sectionHtml).join('')
+      + footerHtml(cv)
       + `<div class="add-section">
            <span>Add a section</span>
            <button type="button" class="btn small" data-action="add-section" data-template="experience">Experience</button>
@@ -497,6 +510,7 @@ const Editor = (() => {
     const card = event.target;
     if (!card.matches || !card.matches('details.card')) return;
     const key = card.dataset.sec;
+    if (key === 'footer') { footerClosed = !card.open; return; }
     const obj = key === 'personal' ? getCv().personal : getCv().sections[Number(key)];
     if (!obj) return;
     if (card.open) closed.delete(obj); else closed.add(obj);

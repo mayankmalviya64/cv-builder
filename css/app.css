@@ -304,3 +304,4 @@ button, input, textarea { font: inherit; color: inherit; }
   .cv-scaler { width: auto !important; height: auto !important; overflow: visible; }
   .cv-scaler .cv-page { transform: none !important; box-shadow: none; }
 }
+.small-note { margin: 0; font-size: 12px; }
