@@ -53,6 +53,7 @@ async function readPdfItems(pdfjs, data) {
   const items = [];
   const links = [];   // clickable links (the LinkedIn footer is one)
   const cells = [];   // Skynet's light-grey category boxes: one per category
+  const yearBorders = []; // Skynet's year-column line: { top, bottom } per stretch
   const fontNames = {};
   for (let p = 1; p <= Math.min(doc.numPages, 3); p++) {
     const page = await doc.getPage(p);
@@ -60,6 +61,7 @@ async function readPdfItems(pdfjs, data) {
     // The drawing instructions: also makes the fonts' real names available.
     const ops = await page.getOperatorList();
     cells.push(...findCategoryCells(pdfjs, ops, viewport, p));
+    yearBorders.push(...findYearBorders(pdfjs, ops, viewport, p));
     const content = await page.getTextContent();
     for (const a of await page.getAnnotations()) {
       if (a.subtype !== 'Link' || !a.url) continue;
@@ -82,7 +84,40 @@ async function readPdfItems(pdfjs, data) {
       items.push({ str: it.str, x: t[4], y: t[5] + (p - 1) * 1000, w: it.width, size, font, page: p });
     }
   }
-  return { items, fontNames, links, cells };
+  return { items, fontNames, links, cells, yearBorders };
+}
+
+/**
+ * Find Skynet's year-column line: a thin vertical line at x ≈ 540.6.
+ * Only lines (rows) that this line passes through have a year column, so only
+ * those get split there (full-width bullets run on past x = 540.6).
+ */
+function findYearBorders(pdfjs, ops, viewport, pageNo) {
+  const OPS = pdfjs.OPS;
+  const found = [];
+  let ctm = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  let pending = null; // last path's bounding box, waiting to be drawn
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i];
+    const args = ops.argsArray[i];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() || ctm;
+    else if (fn === OPS.transform) ctm = pdfjs.Util.transform(ctm, args);
+    else if (fn === OPS.constructPath) pending = args[2];
+    else if ((fn === OPS.stroke || fn === OPS.fill || fn === OPS.eoFill) && pending) {
+      const [x0, x1, y0, y1] = pending;
+      const a = viewport.convertToViewportPoint(...pdfjs.Util.applyTransform([x0, y0], ctm));
+      const b = viewport.convertToViewportPoint(...pdfjs.Util.applyTransform([x1, y1], ctm));
+      const mid = (a[0] + b[0]) / 2;
+      const thin = Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 5;
+      if (thin && Math.abs(mid - SKYNET_YEAR_EDGE_X) < 1) {
+        found.push({ top: Math.min(a[1], b[1]) + (pageNo - 1) * 1000, bottom: Math.max(a[1], b[1]) + (pageNo - 1) * 1000 });
+      }
+      pending = null;
+    }
+  }
+  return found;
 }
 
 /**
@@ -176,7 +211,9 @@ const MARKER_RE = /^[■▪•●◦‣∙·▸►\-–*]$/;
  * (a gap wider than ~0.6 of the font size starts a new segment).
  * Each segment keeps "runs" of {text, bold} so bold words survive.
  */
-function buildLines(items, isBold, isEb, isItalic = {}) {
+function buildLines(items, isBold, isEb, isItalic = {}, columnEdges = []) {
+  // columnEdges: [{ x, top, bottom }] column lines; a text line between top and
+  // bottom is always split at x (see the year column in cvFromPdfItems).
   // Keep real space characters (their font tells us if the space is bold). Drop the
   // others: pdf.js invents spaces between pieces, and some PDFs have wide "spaces"
   // that bridge whole columns. The gap between pieces then decides (see below).
@@ -231,6 +268,7 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
 
   const lines = rows.sort((a, b) => a.y - b.y).map(row => {
     row.pieces.sort((a, b) => a.x - b.x);
+    const edges = columnEdges.filter(e => row.y >= e.top - 2 && row.y <= e.bottom + 2).map(e => e.x);
     const segs = [];
     let seg = null;
     let prev = null;
@@ -245,7 +283,11 @@ function buildLines(items, isBold, isEb, isItalic = {}) {
         if (seg && gap < p.size) { seg.runs.push({ text: ' ', bold: spaceBold }); seg.x1 = p.x + p.w; prev = p; }
         continue;
       }
-      if (!seg || gap > Math.max(prev.size, p.size) * 0.6) {
+      // A known column border between two pieces also starts a new segment, however
+      // small the gap ("2024-25" in Skynet's year column can sit just 1.35pt after
+      // the bullet's last word, closer than a space).
+      const crossesEdge = prev && edges.some(x => prev.x + prev.w <= x + 0.1 && p.x >= x - 0.1);
+      if (!seg || crossesEdge || gap > Math.max(prev.size, p.size) * 0.6) {
         seg = { x0: p.x, x1: p.x + p.w, size: p.size, runs: [], y: row.y };
         segs.push(seg);
       } else if (gap > p.size * 0.1 && !/\s$/.test(prev.str) && !/^\s/.test(p.str)) {
@@ -290,15 +332,25 @@ function joinMarkup(a, b) {
 
 // ---------- 4. build the CV ----------
 
+// Left edge of the year column's border in Skynet PDFs (pt from the page's left).
+const SKYNET_YEAR_EDGE_X = 540.6;
+
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 const isYearText = t => /^(\d{4}|\d{4}\s*[-–]\s*\d{2,4}|present|ongoing)$/i.test(t.trim());
 
 /** Main entry: PDF items → { cv, report }. `base` supplies things a PDF can't (the logo). */
-function cvFromPdfItems({ items, fontNames, links = [], cells = [] }, base) {
+function cvFromPdfItems({ items, fontNames, links = [], cells = [], yearBorders = [] }, base) {
   if (!items.length) throw new Error('This PDF has no selectable text (it may be a scanned image), so it can’t be read.');
   const { isBold, isItalic, isEb } = detectBoldFonts(items, fontNames);
-  const { lines, markers } = buildLines(items, isBold, isEb, isItalic);
+  let { lines, markers } = buildLines(items, isBold, isEb, isItalic);
   const skynet = markers.filter(m => m.x > 100 && m.x < 116).length >= 3;
+  // Skynet: bullet text never crosses the year column's line (x ≈ 540.25–541),
+  // so read the lines again, splitting rows that have that line: the year then
+  // can't stick to the bullet. (Full-width rows have no such line: left alone.)
+  if (skynet && yearBorders.length) {
+    const edges = yearBorders.map(b => ({ ...b, x: SKYNET_YEAR_EDGE_X }));
+    ({ lines, markers } = buildLines(items, isBold, isEb, isItalic, edges));
+  }
   const cv = skynet ? parseSkynet(lines, markers, cells) : parseGeneric(lines);
   cv.personal.logo = base?.personal?.logo ?? '';
   // Footer text not readable? Use the link printed at the bottom of the page instead.
