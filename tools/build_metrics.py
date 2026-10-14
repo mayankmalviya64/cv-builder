@@ -6,10 +6,11 @@ iText lays text out by simply adding up each character's "advance width"
 from the font file: no kerning, no ligatures. To predict its line breaks
 exactly, we copy those same advance widths out of EB Garamond.
 
-Usage (needs:  pip install fonttools):
-    python3 tools/build_metrics.py EBGaramond-Regular.ttf EBGaramond-Bold.ttf
+Usage (needs:  pip install fonttools brotli):
+    python3 tools/build_metrics.py Regular.ttf Bold.ttf Italic.ttf BoldItalic.ttf
 
-Get the two .ttf files from Google Fonts (static 400 and 700 weights).
+Get the four .ttf files from Google Fonts (static 400/700, upright and italic).
+It also writes the matching .woff2 web fonts into fonts/.
 Widths are stored in font units per 1000 (1 unit = 1/1000 of the font size).
 """
 import sys
@@ -17,7 +18,8 @@ from fontTools.ttLib import TTFont
 
 # Characters Skynet's copy of EB Garamond does NOT have. iText draws them in
 # DejaVu Sans instead, so they are wider than in Google's EB Garamond.
-# Measured straight from Skynet-generated PDFs: [regular, bold] widths.
+# Measured straight from Skynet-generated PDFs: [regular, bold] widths
+# (DejaVu's slanted versions are just as wide, so italic uses the same numbers).
 SKYNET_FALLBACK = {
     0x20B9: (636, 695),  # ₹ Indian rupee sign
 }
@@ -43,9 +45,15 @@ def to_js(table):
     return '{\n    ' + ',\n    '.join(lines) + '\n  }'
 
 
-regular, bold = widths(sys.argv[1]), widths(sys.argv[2])
+regular, bold, italic, bold_italic = (widths(p) for p in sys.argv[1:5])
 for code, (r, b) in SKYNET_FALLBACK.items():
-    regular[code], bold[code] = r, b
+    regular[code], bold[code], italic[code], bold_italic[code] = r, b, r, b
+
+# Web fonts for the preview, made from the very same files.
+for path, name in zip(sys.argv[1:5], ['Regular', 'Bold', 'Italic', 'BoldItalic']):
+    font = TTFont(path)
+    font.flavor = 'woff2'
+    font.save(f'fonts/EBGaramond-{name}.woff2')
 
 out = f"""/* =====================================================================
    metrics.js — EB Garamond character widths (GENERATED, do not hand-edit)
@@ -62,7 +70,9 @@ out = f"""/* ===================================================================
 const CV_METRICS = {{
   regular: {to_js(regular)},
   bold: {to_js(bold)},
+  italic: {to_js(italic)},
+  boldItalic: {to_js(bold_italic)},
 }};
 """
 open('js/metrics.js', 'w').write(out)
-print(f'wrote js/metrics.js: {len(regular)} regular + {len(bold)} bold widths')
+print(f'wrote js/metrics.js ({len(regular)} characters × 4 styles) and 4 fonts in fonts/')

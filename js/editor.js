@@ -42,6 +42,19 @@ const Editor = (() => {
       + iconBtn('remove', path, '✕', `Remove ${what}`, 'data-danger');
   }
 
+  /**
+   * ☑ Include tick mark. Ticked = printed on the CV. Unticked = kept here in
+   * the editor (greyed out) but left off the CV, so you can bring it back later.
+   */
+  function includeBox(path, item, what) {
+    const on = isIncluded(item);
+    const tip = on ? `On the CV — untick to leave this ${what} out (it stays here)` : `Left out of the CV — tick to put this ${what} back`;
+    return `<label class="inc" title="${tip}"><input type="checkbox" data-include="${path}" ${on ? 'checked' : ''} aria-label="Include this ${what} on the CV"></label>`;
+  }
+
+  /** Extra class for an unticked item, so it shows greyed out. */
+  const offClass = item => (isIncluded(item) ? '' : ' excluded');
+
   // ---------- which width does a bullet get? ----------
   /** The line capacity (pt) for the bullet at this path. */
   function capacityForPath(path) {
@@ -57,14 +70,15 @@ const Editor = (() => {
       ? `<input type="text" class="bl-year" data-bind="${path}.year" value="${esc(bullet.year)}" placeholder="Year" aria-label="Year">`
       : '';
     return `
-      <div class="bl" data-path="${path}" data-item="${path}">
+      <div class="bl${offClass(bullet)}" data-path="${path}" data-item="${path}">
         <div class="bl-row">
-          <span class="bl-mark">▪</span>
+          ${includeBox(path, bullet, 'bullet')}
           <textarea class="bl-text" data-bind="${path}.text" data-kind="bullet" rows="1" spellcheck="true"
             placeholder="Action verb + what you did + measurable result">${esc(bullet.text)}</textarea>
           ${year}
           <div class="bl-actions">
             ${iconBtn('bold', path, '<b>B</b>', 'Bold the selected words (Ctrl/⌘+B)')}
+            ${iconBtn('italic', path, '<i>I</i>', 'Italicise the selected words (Ctrl/⌘+I)')}
             ${moveRemove(path, 'bullet')}
           </div>
         </div>
@@ -105,8 +119,9 @@ const Editor = (() => {
   function groupHtml(group, path, withYear) {
     const bullets = group.bullets.map((b, i) => bulletHtml(b, `${path}.bullets.${i}`, withYear)).join('');
     return `
-      <div class="group" data-item="${path}">
+      <div class="group${offClass(group)}" data-item="${path}">
         <div class="group-head">
+          ${includeBox(path, group, 'category')}
           ${field('Category', `${path}.label`, group.label, { multiline: true, rows: 2, cls: 'grow', placeholder: 'e.g. Achievements' })}
           <div class="row-actions">${moveRemove(path, 'category')}</div>
         </div>
@@ -136,9 +151,9 @@ const Editor = (() => {
       const ePath = `${sPath}.entries.${e}`;
       const groups = entry.groups.map((g, gi) => groupHtml(g, `${ePath}.groups.${gi}`, false)).join('');
       return `
-        <div class="entry" data-item="${ePath}">
+        <div class="entry${offClass(entry)}" data-item="${ePath}">
           <div class="entry-head">
-            <strong>Entry ${e + 1}</strong>
+            <span class="entry-name">${includeBox(ePath, entry, 'entry')}<strong>Entry ${e + 1}</strong></span>
             <div class="row-actions">${moveRemove(ePath, 'entry')}</div>
           </div>
           <div class="grid-3">
@@ -171,9 +186,9 @@ const Editor = (() => {
       const st = analyzeBullet(bullet.text, capacityPt).status;
       if (st in counts) counts[st]++;
     });
-    return `<span class="st-brim" title="At the brim">✓ ${counts.brim}</span>`
-      + (counts.under ? `<span class="st-under" title="Underfilled">▲ ${counts.under}</span>` : '')
-      + (counts.over ? `<span class="st-over" title="Spills over">▼ ${counts.over}</span>` : '');
+    return `<span class="st-brim" title="Perfect fit: fills its line">✓ ${counts.brim}</span>`
+      + (counts.under ? `<span class="st-under" title="Too short: add a few words">▲ ${counts.under}</span>` : '')
+      + (counts.over ? `<span class="st-over" title="Too long: goes onto a 2nd line">▼ ${counts.over}</span>` : '');
   }
 
   function sectionHtml(section, sIndex) {
@@ -191,9 +206,10 @@ const Editor = (() => {
     }
     const counts = section.type === 'academic' ? '' : `<span class="counts" data-counts="${sIndex}">${sectionCounts(sIndex)}</span>`;
     return `
-      <details class="card" data-sec="${sIndex}" data-item="${sPath}" ${closed.has(section) ? '' : 'open'}>
+      <details class="card${offClass(section)}" data-sec="${sIndex}" data-item="${sPath}" ${closed.has(section) ? '' : 'open'}>
         <summary>
           <span class="chev" aria-hidden="true"></span>
+          ${includeBox(sPath, section, 'section')}
           <span class="sum-title">${esc(section.title) || 'Untitled'}</span>
           <span class="badge">${TYPE_NAMES[section.type]}</span>
           ${counts}
@@ -222,7 +238,6 @@ const Editor = (() => {
             ${field('Line 2', 'personal.line2', p.line2, { placeholder: 'MBA, Batch 25 - 27' })}
           </div>
           ${field('Headline bar', 'headline', cv.headline, { multiline: true, rows: 2, placeholder: 'Winner | Strategist | Builder' })}
-          ${field('Footer link', 'footer', cv.footer, { placeholder: 'www.linkedin.com/in/you' })}
           <div class="logo-row">
             <span class="field-label">Logo (top right)</span>
             ${logo}
@@ -232,12 +247,32 @@ const Editor = (() => {
       </details>`;
   }
 
+  /** Footer: the link printed at the bottom of the page (usually LinkedIn). */
+  let footerClosed = false;
+  function footerHtml(cv) {
+    return `
+      <details class="card" data-sec="footer" ${footerClosed ? '' : 'open'}>
+        <summary><span class="chev" aria-hidden="true"></span><span class="sum-title">Footer</span><span class="badge">LinkedIn link at the bottom</span></summary>
+        <div class="card-body">
+          ${field('Link', 'footer', cv.footer, { placeholder: 'www.linkedin.com/in/your-name' })}
+          <p class="muted small-note">Printed in blue at the bottom centre and clickable in the PDF. Leave it empty to hide it.</p>
+        </div>
+      </details>`;
+  }
+
   // ---------- build everything ----------
-  function render() {
+  function render(keepClosed) {
     const cv = getCv();
+    // After undo/redo the CV objects are new: re-collapse cards by their titles.
+    if (keepClosed) {
+      cv.sections.forEach(sec => { if (keepClosed.includes(sec.title)) closed.add(sec); });
+      if (keepClosed.includes('#personal')) closed.add(cv.personal);
+      footerClosed = keepClosed.includes('#footer');
+    }
     const scrollTop = root.scrollTop;
     root.innerHTML = personalHtml(cv)
       + cv.sections.map(sectionHtml).join('')
+      + footerHtml(cv)
       + `<div class="add-section">
            <span>Add a section</span>
            <button type="button" class="btn small" data-action="add-section" data-template="experience">Experience</button>
@@ -310,21 +345,32 @@ const Editor = (() => {
 
   /** Wrap the selected words of a bullet in **…** (or unwrap if already bold). */
   function toggleBold(path) {
+    toggleMark(path, '**', 'bold');
+  }
+
+  /** Wrap the selected words of a bullet in _…_ (or unwrap if already italic). */
+  function toggleItalic(path) {
+    toggleMark(path, '_', 'italicise');
+  }
+
+  /** Shared by bold and italic: add or remove `mark` around the selection. */
+  function toggleMark(path, mark, verb) {
     const el = root.querySelector(`[data-bind="${path}.text"]`);
     if (!el) return;
     const { selectionStart: a, selectionEnd: b, value } = el;
     if (a === b) {
-      flashMessage(el, 'Select the words to bold first');
+      flashMessage(el, `Select the words to ${verb} first`);
       return;
     }
+    const n = mark.length;
     const picked = value.slice(a, b);
     let next;
-    if (/^\*\*.*\*\*$/.test(picked)) {
-      next = value.slice(0, a) + picked.slice(2, -2) + value.slice(b);   // already bold → unbold
-    } else if (value.slice(a - 2, a) === '**' && value.slice(b, b + 2) === '**') {
-      next = value.slice(0, a - 2) + picked + value.slice(b + 2);        // selection inside ** ** → unbold
+    if (picked.length > 2 * n && picked.startsWith(mark) && picked.endsWith(mark)) {
+      next = value.slice(0, a) + picked.slice(n, -n) + value.slice(b);   // already marked → unmark
+    } else if (value.slice(a - n, a) === mark && value.slice(b, b + n) === mark) {
+      next = value.slice(0, a - n) + picked + value.slice(b + n);        // selection inside the marks → unmark
     } else {
-      next = value.slice(0, a) + '**' + picked.replace(/\*\*/g, '') + '**' + value.slice(b);
+      next = value.slice(0, a) + mark + picked.split(mark).join('') + mark + value.slice(b);
     }
     el.value = next;
     setAt(getCv(), path + '.text', next);
@@ -369,6 +415,15 @@ const Editor = (() => {
 
   function handleChange(event) {
     const el = event.target;
+    // ☑ Include tick mark: unticked → hidden: true (left off the CV, kept in the editor).
+    if (el.dataset.include) {
+      const item = getAt(getCv(), el.dataset.include);
+      if (el.checked) delete item.hidden;
+      else item.hidden = true;
+      render();
+      onChange('structure');
+      return;
+    }
     // Year-column checkbox: bullets change width and gain/lose a year box.
     if (el.type === 'checkbox' && el.dataset.bind) {
       setAt(getCv(), el.dataset.bind, el.checked);
@@ -423,6 +478,8 @@ const Editor = (() => {
       changed = true;
     } else if (action === 'bold') {
       toggleBold(path);
+    } else if (action === 'italic') {
+      toggleItalic(path);
     } else if (action === 'tweak') {
       const text = getAt(cv, path + '.text');
       const tweak = TWEAKS[Number(btn.dataset.index)];
@@ -461,10 +518,15 @@ const Editor = (() => {
     if (el.dataset.kind !== 'bullet') return;
     const bulletPath = el.dataset.bind.replace(/\.text$/, '');
 
-    // Ctrl/⌘ + B → bold
+    // Ctrl/⌘ + B → bold,  Ctrl/⌘ + I → italic
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b') {
       event.preventDefault();
       toggleBold(bulletPath);
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'i') {
+      event.preventDefault();
+      toggleItalic(bulletPath);
       return;
     }
     // Enter → new bullet just below (a CV bullet never contains a line break)
@@ -497,9 +559,90 @@ const Editor = (() => {
     const card = event.target;
     if (!card.matches || !card.matches('details.card')) return;
     const key = card.dataset.sec;
+    if (key === 'footer') { footerClosed = !card.open; return; }
     const obj = key === 'personal' ? getCv().personal : getCv().sections[Number(key)];
     if (!obj) return;
     if (card.open) closed.delete(obj); else closed.add(obj);
+  }
+
+  // ---------- paste with bold / italic (Google Docs, Sheets, Word, web pages) ----------
+  // Copied text arrives with its formatting as HTML. We keep ONLY bold and italic
+  // (no fonts, sizes or colours) and turn them into **bold** / _italic_ marks.
+  // Several pasted lines (paragraphs, list items, sheet rows) become several bullets.
+
+  /** HTML from the clipboard → lines, each a list of {text, bold, italic} pieces. */
+  function htmlToLines(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const lines = [[]];
+    const newLine = () => { if (lines[lines.length - 1].length) lines.push([]); };
+    const BLOCK = /^(P|DIV|LI|TR|H[1-6]|BLOCKQUOTE|PRE|UL|OL|TABLE|TBODY|SECTION|ARTICLE)$/;
+
+    function walk(node, bold, italic) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.replace(/[\s\u00a0]+/g, ' ');
+        if (text.trim() || text === ' ') lines[lines.length - 1].push({ text, bold, italic });
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = node.tagName;
+      if (/^(STYLE|SCRIPT|META|TITLE|HEAD)$/.test(tag)) return;
+      if (tag === 'BR') { newLine(); return; }
+      // Tags first (<b>, <strong>, <i>, <em>), then inline styles, which win.
+      // (Google Docs wraps everything in <b style="font-weight:normal">, so styles must win.)
+      if (/^(B|STRONG|TH|H[1-6])$/.test(tag)) bold = true;
+      if (/^(I|EM|CITE)$/.test(tag)) italic = true;
+      const st = node.style || {};
+      if (st.fontWeight) bold = st.fontWeight === 'bold' || st.fontWeight === 'bolder' || Number(st.fontWeight) >= 600;
+      if (st.fontStyle) italic = /italic|oblique/.test(st.fontStyle);
+      const block = BLOCK.test(tag);
+      if (block) newLine();
+      node.childNodes.forEach(child => walk(child, bold, italic));
+      if (tag === 'TD' || tag === 'TH') lines[lines.length - 1].push({ text: ' ', bold: false, italic: false }); // cells in a row: space apart
+      if (block) newLine();
+    }
+    walk(doc.body, false, false);
+    return lines.map(pieces => piecesToMarkup(pieces)).filter(Boolean);
+  }
+
+  /** Remove a typed bullet sign at the start of a pasted line ("• ", "- ", "▪ " …). */
+  function stripBulletSign(text) {
+    return text.replace(/^((?:\*\*|_)*)\s*[•▪■●◦‣∙·▸►➢✓✔–\-*]\s+/, '$1');
+  }
+
+  function handlePaste(event) {
+    const el = event.target;
+    if (el.dataset?.kind !== 'bullet') return; // other fields: normal plain paste
+    const data = event.clipboardData;
+    if (!data) return;
+    const html = data.getData('text/html');
+    const plain = data.getData('text/plain');
+    let lines = html ? htmlToLines(html) : plain.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    lines = lines.map(stripBulletSign).filter(l => stripBold(l).trim());
+    if (!lines.length) return;
+    event.preventDefault();
+
+    const bulletPath = el.dataset.bind.replace(/\.text$/, '');
+    // First line goes where the cursor is (replacing any selected text).
+    const { selectionStart: a, selectionEnd: b } = el;
+    const before = el.value.slice(0, a);
+    const glue = before && !/\s$/.test(before) && a === el.value.length ? ' ' : '';
+    el.setRangeText(glue + lines[0], a, b, 'end');
+    setAt(getCv(), el.dataset.bind, el.value);
+
+    if (lines.length === 1) {
+      afterTextChange(el, el.dataset.bind);
+      onChange('structure'); // a paste is its own undo step
+      return;
+    }
+    // More lines: each becomes a new bullet just below this one.
+    const { parentPath, index } = splitPath(bulletPath);
+    const list = getAt(getCv(), parentPath);
+    const withYear = 'year' in list[index];
+    const extra = lines.slice(1).map(text => (withYear ? { text, year: '' } : { text }));
+    list.splice(index + 1, 0, ...extra);
+    render();
+    onChange('structure');
+    focusBullet(`${parentPath}.${index + extra.length}`);
   }
 
   // ---------- drag and drop ----------
@@ -624,11 +767,18 @@ const Editor = (() => {
     root.addEventListener('click', handleClick);
     root.addEventListener('keydown', handleKeydown);
     root.addEventListener('pointerdown', startDrag);
+    root.addEventListener('paste', handlePaste);
     root.addEventListener('toggle', handleToggle, true); // 'toggle' doesn't bubble, so capture it
     render();
   }
 
-  return { mount, render, focusBullet };
+  /** Titles of the collapsed cards, so undo/redo can keep them collapsed. */
+  function closedTitles() {
+    return [...root.querySelectorAll('details.card:not([open])')].map(d => d.dataset.sec === 'personal' || d.dataset.sec === 'footer'
+      ? `#${d.dataset.sec}` : (getCv().sections[Number(d.dataset.sec)] || {}).title);
+  }
+
+  return { mount, render, focusBullet, closedTitles };
 })();
 
 /**
@@ -636,13 +786,16 @@ const Editor = (() => {
  * callback(bullet, path, capacityPt) — used for the stats and section counts.
  */
 function forEachBullet(cv, callback) {
+  // Unticked (excluded) items aren't printed, so they're skipped here too:
+  // the fit score and section counts only describe what's on the CV.
   cv.sections.forEach((section, s) => {
+    if (!isIncluded(section)) return;
     if (section.type === 'experience') {
-      section.entries.forEach((entry, e) => entry.groups.forEach((group, g) => group.bullets.forEach((bullet, b) =>
-        callback(bullet, `sections.${s}.entries.${e}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, false)))));
+      section.entries.forEach((entry, e) => isIncluded(entry) && entry.groups.forEach((group, g) => isIncluded(group) && group.bullets.forEach((bullet, b) =>
+        isIncluded(bullet) && callback(bullet, `sections.${s}.entries.${e}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, false)))));
     } else if (section.type === 'categorized') {
-      section.groups.forEach((group, g) => group.bullets.forEach((bullet, b) =>
-        callback(bullet, `sections.${s}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, !!section.showYear))));
+      section.groups.forEach((group, g) => isIncluded(group) && group.bullets.forEach((bullet, b) =>
+        isIncluded(bullet) && callback(bullet, `sections.${s}.groups.${g}.bullets.${b}`, bulletCapacityPt(true, !!section.showYear))));
     }
   });
 }

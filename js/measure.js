@@ -92,25 +92,27 @@ const widthCache = new Map();     // remembers widths we already measured
  * Normally read from the table in metrics.js. A character that isn't in the
  * table (an emoji, say) is measured with a canvas instead — close, not exact.
  */
-function charUnits(ch, isBold) {
-  const table = isBold ? CV_METRICS.bold : CV_METRICS.regular;
+function charUnits(ch, isBold, isItalic) {
+  const table = isItalic
+    ? (isBold ? CV_METRICS.boldItalic : CV_METRICS.italic)
+    : (isBold ? CV_METRICS.bold : CV_METRICS.regular);
   const units = table[ch.codePointAt(0)];
   if (units !== undefined) return units;
 
   if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
-  measureCtx.font = `${isBold ? 700 : 400} 100px "${CV_FONT_FAMILY}", "DejaVu Sans", Georgia, serif`;
+  measureCtx.font = `${isItalic ? 'italic ' : ''}${isBold ? 700 : 400} 100px "${CV_FONT_FAMILY}", "DejaVu Sans", Georgia, serif`;
   if ('fontKerning' in measureCtx) measureCtx.fontKerning = 'none';
   return measureCtx.measureText(ch).width * 10; // 100px font → ×10 = units per 1000
 }
 
-/** Width in px of `text` in the CV font (regular or bold), the way Skynet adds it up. */
-function measureWidthPx(text, isBold) {
+/** Width in px of `text` in the CV font (regular/bold, upright/italic), the way Skynet adds it up. */
+function measureWidthPx(text, isBold, isItalic = false) {
   if (!text) return 0;
-  const key = (isBold ? 'b|' : 'r|') + text;
+  const key = (isBold ? 'b' : 'r') + (isItalic ? 'i|' : '|') + text;
   if (widthCache.has(key)) return widthCache.get(key);
 
   let units = 0;
-  for (const ch of text) units += charUnits(ch, isBold); // for…of walks real characters (₹, emoji…)
+  for (const ch of text) units += charUnits(ch, isBold, isItalic); // for…of walks real characters (₹, emoji…)
   const widthPt = (units / 1000) * CV_FONT_SIZE_PT;
   const width = widthPt * PX_PER_PT;
 
@@ -126,24 +128,77 @@ function normalizeSpaces(text) {
 }
 
 /**
- * Split "Grew **50K+ users** fast" into pieces:
- *   [{text:'Grew ', bold:false}, {text:'50K+ users', bold:true}, {text:' fast', bold:false}]
- * Anything wrapped in **double stars** is bold.
+ * Split text with formatting marks into pieces:
+ *   "Grew **50K+ users** _fast_" →
+ *   [{text:'Grew ', bold:false, italic:false}, {text:'50K+ users', bold:true, italic:false},
+ *    {text:' ', bold:false, italic:false}, {text:'fast', bold:false, italic:true}]
+ * Rules: **double stars** switch bold on/off, _underscores_ switch italic on/off,
+ * and they can be combined: **_bold and italic_**.
+ * A mark with no partner (e.g. a lone "_" in "snake_case") is just printed as-is.
  */
 function parseBold(text) {
+  const parts = String(text || '').split(/(\*\*|_)/);
+  // Count each kind of mark; if one is left without a partner, the last one is plain text.
+  const total = { '**': 0, _: 0 };
+  parts.forEach(p => { if (p in total) total[p]++; });
+  const seen = { '**': 0, _: 0 };
   const pieces = [];
-  String(text || '').split(/(\*\*[^*]+?\*\*)/g).forEach(part => {
-    if (!part) return;
-    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-      pieces.push({ text: part.slice(2, -2), bold: true });
-    } else {
-      pieces.push({ text: part, bold: false });
+  let bold = false;
+  let italic = false;
+  for (const part of parts) {
+    if (part in total) {
+      seen[part]++;
+      const unpaired = total[part] % 2 === 1 && seen[part] === total[part];
+      if (!unpaired) {
+        if (part === '**') bold = !bold; else italic = !italic;
+        continue;
+      }
     }
-  });
+    if (!part) continue;
+    const last = pieces[pieces.length - 1];
+    if (last && last.bold === bold && last.italic === italic) last.text += part;
+    else pieces.push({ text: part, bold, italic });
+  }
   return pieces;
 }
 
-/** Plain text without the ** markers (handy for character counts). */
+/**
+ * The reverse: pieces [{text, bold, italic}] → text with ** and _ marks.
+ * Used when importing a PDF and when pasting from Google Docs / Sheets.
+ * Spaces keep their own boldness (a bold space is wider, so it matters for the
+ * line check); italic doesn't change a space's width, so spaces only stay
+ * italic when the words on both sides are italic (keeps the marks tidy).
+ */
+function piecesToMarkup(pieces) {
+  // 1. Per-character styles, so neighbouring pieces with the same style merge.
+  const chars = [];
+  for (const p of pieces) for (const ch of String(p.text).replace(/\s/g, ' ')) chars.push({ ch, bold: !!p.bold, italic: !!p.italic });
+  // 2. Tidy the line: no spaces at the ends, no double spaces.
+  while (chars.length && chars[0].ch === ' ') chars.shift();
+  while (chars.length && chars[chars.length - 1].ch === ' ') chars.pop();
+  const tidy = chars.filter((c, i) => !(c.ch === ' ' && chars[i - 1] && chars[i - 1].ch === ' '));
+  tidy.forEach((c, i) => {
+    if (c.ch !== ' ') return;
+    const before = tidy[i - 1];
+    const after = tidy[i + 1];
+    c.italic = !!(before && after && before.italic && after.italic);
+  });
+  // 3. Write the marks wherever the style changes.
+  let out = '';
+  let bold = false;
+  let italic = false;
+  for (const c of tidy) {
+    if (c.italic !== italic && italic) { out += '_'; italic = false; } // close italic first (tidier nesting)
+    if (c.bold !== bold) { out += '**'; bold = c.bold; }
+    if (c.italic !== italic) { out += '_'; italic = c.italic; }
+    out += c.ch;
+  }
+  if (italic) out += '_';
+  if (bold) out += '**';
+  return out;
+}
+
+/** Plain text without the ** and _ marks (handy for character counts). */
 function stripBold(text) {
   return parseBold(text).map(p => p.text).join('');
 }
@@ -175,10 +230,10 @@ function analyzeBullet(rawText, capacityPt) {
     piece.text.split(/(\s+)/).forEach(chunk => {
       if (!chunk) return;
       if (/^\s+$/.test(chunk)) {
-        tokens.push({ text: chunk, isSpace: true, w: measureWidthPx(chunk, piece.bold) });
+        tokens.push({ text: chunk, isSpace: true, w: measureWidthPx(chunk, piece.bold, piece.italic) });
       } else {
         chunk.split(/(?<=[-\/])/).forEach(part => {
-          if (part) tokens.push({ text: part, isSpace: false, w: measureWidthPx(part, piece.bold) });
+          if (part) tokens.push({ text: part, isSpace: false, w: measureWidthPx(part, piece.bold, piece.italic) });
         });
       }
     });
@@ -213,23 +268,40 @@ function analyzeBullet(rawText, capacityPt) {
   if (lines.length > 1 || fill > BRIM_MAX) {
     result.status = 'over';
     result.deltaPx = widthPx - capacityPx;
+    // The word(s) pushed onto the extra line, e.g. “overhaul”
     const spill = lines.length > 1
       ? lines[lines.length - 1].filter(t => !t.isSpace).map(t => t.text).join(' ')
       : '';
     const spillWords = spill ? spill.split(' ').length : 0;
-    result.message = `Spills onto ${lines.length} lines — trim ~${Math.ceil(result.deltaPx)}px (~${Math.ceil(result.deltaPx / AVG_CHAR_PX)} chars)`
-      + (spillWords && spillWords <= 3 ? `. Orphan: “${spill}”` : '.');
+    const cut = lettersFor(result.deltaPx);
+    result.message = spillWords && spillWords <= 3
+      ? `Too long: “${spill}” falls onto a ${ordinal(lines.length)} line. Cut about ${cut} to pull it back up.`
+      : `Too long: runs onto ${lines.length} lines. Cut about ${cut}.`;
   } else if (fill >= BRIM_MIN) {
     result.status = 'brim';
     result.deltaPx = 0;
-    result.message = `At the brim — ${Math.max(0, capacityPx - widthPx).toFixed(0)}px spare.`;
+    const room = Math.floor(Math.max(0, capacityPx - widthPx) / AVG_CHAR_PX);
+    result.message = room > 0
+      ? `Perfect fit: fills the line (room for ${room === 1 ? '1 more letter' : `${room} more letters`}).`
+      : 'Perfect fit: fills the line exactly.';
   } else {
     result.status = 'under';
     result.deltaPx = capacityPx * (BRIM_MIN / 100) - widthPx;
-    result.message = `Underfilled — add ~${Math.ceil(result.deltaPx)}px (~${Math.ceil(result.deltaPx / AVG_CHAR_PX)} chars) to reach the brim.`;
+    result.message = `A bit short: add about ${lettersFor(result.deltaPx)} to fill the line.`;
   }
-  if (fontStatus === 'fallback') result.message += ' (preview font not loaded; this number is still exact)';
+  if (fontStatus === 'fallback') result.message += ' (The preview font didn’t load, but this check is still exact.)';
   return result;
+}
+
+/** "about 4 letters" from a width in px (one letter ≈ AVG_CHAR_PX wide). */
+function lettersFor(px) {
+  const n = Math.max(1, Math.ceil(px / AVG_CHAR_PX));
+  return n === 1 ? '1 letter' : `${n} letters`;
+}
+
+/** 2 → "2nd", 3 → "3rd" … */
+function ordinal(n) {
+  return n + (n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 }
 
 // ---- Micro-tweaks -----------------------------------------------------

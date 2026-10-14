@@ -20,7 +20,7 @@ function loadCv() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const cv = JSON.parse(saved);
-      if (isValidCv(cv)) return cv;
+      if (isValidCv(cv)) return normalizeCv(cv);
     }
   } catch (err) {
     // Private windows or blocked storage land here — just use the sample.
@@ -38,9 +38,105 @@ function saveCv(cv) {
   }
 }
 
-/** Basic shape check so a wrong file can't break the app. */
+/** Is this at least roughly a CV? (an object with sections, or with a personal block) */
 function isValidCv(cv) {
-  return !!cv && typeof cv === 'object' && Array.isArray(cv.sections) && typeof cv.personal === 'object';
+  return !!cv && typeof cv === 'object' && !Array.isArray(cv) && (Array.isArray(cv.sections) || typeof cv.personal === 'object');
+}
+
+// ---- Repairing imported data ---------------------------------------------
+// An imported file may come from an older version, be hand-edited, or have
+// sections that don't match our three types. normalizeCv() fills in every
+// missing field and converts odd shapes, so the editor never breaks.
+
+const str = v => (v == null ? '' : String(v));
+const list = v => (Array.isArray(v) ? v : v == null ? [] : [v]);
+
+/**
+ * Include / exclude tick marks: an unticked item gets `hidden: true`.
+ * It stays in the editor but is left out of the printed CV.
+ * keepHidden() copies that flag onto a repaired item (only when it's set).
+ */
+function keepHidden(from, to) {
+  if (from && typeof from === 'object' && from.hidden) to.hidden = true;
+  return to;
+}
+
+/** Is this item ticked (shown on the CV)? */
+function isIncluded(item) {
+  return !(item && item.hidden);
+}
+
+function normalizeBullet(b, withYear) {
+  const bullet = typeof b === 'string' ? { text: b } : { text: str(b && (b.text ?? b.bullet ?? b.content)) };
+  if (withYear) bullet.year = str(b && typeof b === 'object' ? b.year : '');
+  return keepHidden(b, bullet);
+}
+
+function normalizeGroup(g, withYear) {
+  if (typeof g === 'string' || (g && !g.bullets && g.text)) g = { label: '', bullets: [g] }; // a bare bullet
+  return keepHidden(g, {
+    label: str(g && (g.label ?? g.category ?? g.name)),
+    bullets: list(g && (g.bullets ?? g.items ?? g.points)).map(b => normalizeBullet(b, withYear)),
+  });
+}
+
+/** Pick a section type from its contents when the type is missing or unknown. */
+function guessType(sec) {
+  if (['academic', 'experience', 'categorized'].includes(sec.type)) return sec.type;
+  if (Array.isArray(sec.rows)) return 'academic';
+  if (Array.isArray(sec.entries)) return 'experience';
+  return 'categorized';
+}
+
+function normalizeSection(sec) {
+  sec = sec && typeof sec === 'object' ? sec : {};
+  return keepHidden(sec, normalizeSectionBody(sec));
+}
+
+function normalizeSectionBody(sec) {
+  const type = guessType(sec);
+  const title = str(sec.title ?? sec.name ?? sec.heading) || 'Section';
+  if (type === 'academic') {
+    const columns = list(sec.columns).map(str);
+    const cols = columns.length ? columns : ['Degree', 'Institute', '%/CGPA', 'Year'];
+    const rows = list(sec.rows).map(r => {
+      const cells = Array.isArray(r) ? r.map(str) : typeof r === 'object' && r ? Object.values(r).map(str) : [str(r)];
+      while (cells.length < cols.length) cells.push('');
+      return cells.slice(0, cols.length);
+    });
+    return { type, title, columns: cols, rows };
+  }
+  if (type === 'experience') {
+    const entries = list(sec.entries).map(e => {
+      e = e && typeof e === 'object' ? e : {};
+      // Bullets sitting straight on the entry (no categories) → one unnamed category.
+      const groups = e.groups ? list(e.groups) : e.bullets ? [{ label: '', bullets: e.bullets }] : [];
+      return keepHidden(e, {
+        org: str(e.org ?? e.company ?? e.organisation), role: str(e.role ?? e.position), dates: str(e.dates ?? e.date),
+        subtitle: str(e.subtitle ?? e.title), duration: str(e.duration),
+        groups: groups.map(g => normalizeGroup(g, false)),
+      });
+    });
+    return { type, title, note: str(sec.note), entries };
+  }
+  // categorized
+  const rawGroups = sec.groups ? list(sec.groups) : sec.bullets ? [{ label: '', bullets: sec.bullets }] : [];
+  const showYear = sec.showYear != null
+    ? !!sec.showYear
+    : rawGroups.some(g => list(g && g.bullets).some(b => b && typeof b === 'object' && b.year));
+  return { type: 'categorized', title, showYear, groups: rawGroups.map(g => normalizeGroup(g, showYear)) };
+}
+
+/** Return a complete, safe CV object built from whatever we were given. */
+function normalizeCv(raw) {
+  const cv = raw && typeof raw === 'object' ? raw : {};
+  const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
+  return {
+    personal: { name: str(p.name), line1: str(p.line1), line2: str(p.line2), logo: str(p.logo) },
+    headline: str(cv.headline),
+    footer: str(cv.footer),
+    sections: list(cv.sections).map(normalizeSection),
+  };
 }
 
 /** Download the CV as a .json file. */
@@ -54,22 +150,25 @@ function exportCv(cv) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-/** Read a .json file chosen by the user. Resolves with the CV or rejects with a message. */
-function importCvFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const cv = JSON.parse(reader.result);
-        if (!isValidCv(cv)) throw new Error('shape');
-        resolve(cv);
-      } catch (err) {
-        reject(new Error('That file isn’t a CV exported from this builder.'));
-      }
-    };
-    reader.onerror = () => reject(new Error('Couldn’t read that file.'));
-    reader.readAsText(file);
-  });
+/**
+ * Read a file chosen by the user: a CV PDF (e.g. from Skynet) or a .json
+ * exported from this builder. Resolves with { cv, source } or rejects with a message.
+ * `current` is the CV on screen (its logo is kept, a PDF can't give us one).
+ */
+async function importCvFile(file, current) {
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (isPdf) {
+    const { cv } = await importPdfFile(file, current);
+    return { cv, source: 'pdf' };
+  }
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch (err) {
+    throw new Error('That file isn’t a PDF or a .json CV, so it can’t be imported.');
+  }
+  if (!isValidCv(data)) throw new Error('That .json file doesn’t look like a CV from this builder.');
+  return { cv: normalizeCv(data), source: 'json' };
 }
 
 // ---- Path helpers ------------------------------------------------------
@@ -77,6 +176,7 @@ function importCvFile(file) {
 // Numbers are array positions: 'sections.2.groups.0' = 3rd section, 1st group.
 
 function getAt(obj, path) {
+  if (path === '') return obj; // empty path = the object itself (needed for top-level fields like 'footer')
   return path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), obj);
 }
 

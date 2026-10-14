@@ -17,6 +17,9 @@ const els = {
   pageStatus: document.getElementById('page-status'),
   banner: document.getElementById('banner'),
   highlights: document.getElementById('toggle-highlights'),
+  undo: document.getElementById('btn-undo'),
+  redo: document.getElementById('btn-redo'),
+  importBtn: document.getElementById('btn-import'),
 };
 
 const PAGE_HEIGHT_PX = LAYOUT.pageHeightPt * PX_PER_PT;
@@ -40,6 +43,25 @@ function renderPreview() {
   updatePageFit();
   updateStats();
   fitPreview();
+  updateImportPrompt();
+}
+
+// ---------- "Import your CV" prompt ----------
+// While the untouched sample CV is on screen (a new visitor, or after Reset),
+// the Import button pulses and a green banner asks them to import their own PDF.
+const SAMPLE_JSON = JSON.stringify(SAMPLE_CV);
+
+function updateImportPrompt() {
+  const showingSample = JSON.stringify(cv) === SAMPLE_JSON;
+  els.importBtn.classList.toggle('pulse', showingSample);
+  if (showingSample && els.banner.hidden) {
+    els.banner.className = 'banner no-print cta';
+    els.banner.innerHTML = '<span><b>Start with your own CV:</b> this is a sample. Import your CV as a PDF (your Skynet CV works best) and every section fills in for you.</span>'
+      + '<label class="btn small import-cta" for="import-file">⬆ Import your CV (PDF)</label>';
+    els.banner.hidden = false;
+  } else if (!showingSample && els.banner.classList.contains('cta')) {
+    showBanner(''); // they've started editing or imported: hide the prompt
+  }
 }
 
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */
@@ -76,10 +98,10 @@ function updateStats() {
   });
   const score = counts.total ? Math.round((counts.brim / counts.total) * 100) : 0;
   els.stats.innerHTML = `
-    <span class="stat score" title="Share of bullets sitting at the brim">${score}%<small>brim score</small></span>
-    <span class="stat st-brim" title="98–100% of the line">${counts.brim}<small>brim</small></span>
-    <span class="stat st-under" title="Below 98% — add a few words">${counts.under}<small>under</small></span>
-    <span class="stat st-over" title="Wraps to a 2nd line — trim">${counts.over}<small>over</small></span>`;
+    <span class="stat score" title="Share of bullets that fill their line perfectly">${score}%<small>fit score</small></span>
+    <span class="stat st-brim" title="Fills 98–100% of its line">${counts.brim}<small>perfect</small></span>
+    <span class="stat st-under" title="Under 98% of the line: add a few words">${counts.under}<small>too short</small></span>
+    <span class="stat st-over" title="Goes onto a 2nd line: cut a few letters">${counts.over}<small>too long</small></span>`;
 }
 
 // ---------- scale the A4 page to fit the right-hand pane ----------
@@ -108,18 +130,115 @@ function showBanner(text, kind = 'info') {
   els.banner.hidden = !text;
 }
 
-/** Called by the editor whenever the CV changes. */
-function handleChange() {
+/** Called by the editor whenever the CV changes ('text' = typing, 'structure' = anything else). */
+function handleChange(kind) {
   queuePreview();
   queueSave();
+  History.record(kind);
 }
 
-/** Swap in a whole new CV (import / reset). */
+/** Swap in a whole new CV (import / reset). Can be undone. */
 function replaceCv(next) {
   cv = next;
   Editor.render();
   renderPreview();
   queueSave();
+  History.record('structure');
+}
+
+// ---------- undo / redo ----------
+// The editor redraws its fields after most changes, which wipes the browser's
+// own undo memory. So we keep our own: a list of saved copies of the whole CV.
+// - Typing in one field is ONE step until you pause for a second.
+// - Every other change (add, delete, drag, bold, tweak, import…) is one step.
+const History = (() => {
+  const LIMIT = 200;      // how many steps back we remember
+  const MERGE_MS = 1000;  // keystrokes closer than this join the same step
+  let past = [];          // older copies (JSON strings)
+  let future = [];        // copies we undid (for redo)
+  let current = JSON.stringify(cv);
+  let lastField = '';
+  let lastTime = 0;
+
+  function record(kind) {
+    const snap = JSON.stringify(cv);
+    if (snap === current) return;
+    const field = kind === 'text' ? (document.activeElement?.dataset?.bind || '') : '';
+    const now = Date.now();
+    const sameTyping = kind === 'text' && field && field === lastField && now - lastTime < MERGE_MS;
+    if (!sameTyping) {
+      past.push(current);
+      if (past.length > LIMIT) past.shift();
+    }
+    current = snap;
+    future = [];
+    lastField = field;
+    lastTime = now;
+    updateButtons();
+  }
+
+  /** Put a saved copy back on screen, keeping the cursor in the same field if possible. */
+  function apply(snap) {
+    const active = document.activeElement;
+    const field = active?.dataset?.bind;
+    const caret = active && 'selectionStart' in active ? active.selectionStart : null;
+    const closed = Editor.closedTitles();
+    cv = JSON.parse(snap);
+    current = snap;
+    lastField = '';
+    Editor.render(closed);
+    renderPreview();
+    queueSave();
+    updateButtons();
+    if (field) {
+      const el = els.editor.querySelector(`[data-bind="${field}"]`);
+      if (el) {
+        el.focus({ preventScroll: true });
+        if (caret !== null && 'setSelectionRange' in el && el.type !== 'checkbox') {
+          const at = Math.min(caret, el.value.length);
+          el.setSelectionRange(at, at);
+        }
+      }
+    }
+  }
+
+  function undo() {
+    if (!past.length) return;
+    future.push(current);
+    apply(past.pop());
+  }
+
+  function redo() {
+    if (!future.length) return;
+    past.push(current);
+    apply(future.pop());
+  }
+
+  function updateButtons() {
+    els.undo.disabled = !past.length;
+    els.redo.disabled = !future.length;
+  }
+
+  return { record, undo, redo, updateButtons };
+})();
+
+// ⌘Z / Ctrl+Z = undo, ⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y = redo — anywhere on the page.
+document.addEventListener('keydown', event => {
+  if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+  const key = event.key.toLowerCase();
+  if (key === 'z' && !event.shiftKey) { event.preventDefault(); History.undo(); }
+  else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); History.redo(); }
+}, true);
+els.undo.addEventListener('click', () => History.undo());
+els.redo.addEventListener('click', () => History.redo());
+
+/** One line telling the user what was imported, so they can spot anything missing. */
+function importSummary(imported, source) {
+  let bullets = 0;
+  forEachBullet(imported, () => { bullets++; });
+  const names = imported.sections.map(s => s.title).join(', ');
+  const from = source === 'pdf' ? 'Imported from PDF' : 'Imported';
+  return `${from}: ${imported.sections.length} sections (${names}), ${bullets} bullets. Please check it over — press ⌘Z / Ctrl+Z to undo the import.`;
 }
 
 // ---------- top-bar buttons ----------
@@ -132,11 +251,13 @@ document.getElementById('import-file').addEventListener('change', async event =>
   const file = event.target.files[0];
   event.target.value = ''; // allow picking the same file again later
   if (!file) return;
+  showBanner(`Reading ${file.name}…`, 'info');
   try {
-    replaceCv(await importCvFile(file));
-    showBanner('');
+    const { cv: imported, source } = await importCvFile(file, cv);
+    replaceCv(imported);
+    showBanner(importSummary(imported, source), 'info');
   } catch (err) {
-    showBanner(err.message, 'warn');
+    showBanner(err.message || 'Couldn’t import that file.', 'warn');
   }
 });
 els.highlights.addEventListener('change', () => {
@@ -156,11 +277,12 @@ els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true
 // ---------- start ----------
 Editor.mount(els.editor, () => cv, handleChange);
 renderPreview();
+History.updateButtons();
 
 // Measurements need the real font: re-measure everything once it arrives.
 loadCvFont().then(status => {
   if (status === 'fallback') {
-    showBanner('EB Garamond couldn’t load, so widths are approximate (measured with Georgia). Check your internet connection and reload.', 'warn');
+    showBanner('The CV font couldn’t load, so the preview may look slightly off. The line checks are still exact. Try reloading.', 'warn');
   }
   Editor.render();
   renderPreview();
