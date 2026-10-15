@@ -299,6 +299,16 @@
 .hl .cv-bullet.st-over  .cv-text { background: rgba(239, 68, 68, 0.22); }
 .cv-bullet[data-path] { cursor: pointer; }
 .cv-bullet[data-path]:hover .cv-text { outline: 1px solid #0ea5e9; outline-offset: 0; }
+/* The line whose editor box has the cursor (see showActiveLine in app.js).
+   outline + box-shadow don't take up space, so the layout never shifts. */
+.cv-page .cv-active {
+  outline: 1.5px solid #0284c7;
+  outline-offset: 0.5pt;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25);
+  background-color: rgba(14, 165, 233, 0.12);
+  border-radius: 1pt;
+}
+.hl .cv-bullet.cv-active .cv-text { background-color: rgba(14, 165, 233, 0.16); }
 
 /* ---- Printing ---- */
 /* Skynet leaves 3pt at the top and bottom of every printed page: page 2 and 3
@@ -306,13 +316,28 @@
    all multi-page Skynet PDFs). Same margins here = same page breaks.
    Chrome lays pages out in whole pixels (A4 = 1123px = 842.25pt, margins
    rounded to 0.75pt steps), so the nearest safe bottom margin is 3.75pt:
-   content stops at 838.5pt, just inside Skynet's 838.89pt. */
-@page { size: A4; margin: 3pt 0 3.75pt; }
+   content stops at 838.5pt, just inside Skynet's 838.89pt.
+   We tell Chrome the margin is 0 and add those gaps ourselves (padding that
+   repeats on every printed page, below), so the PDF comes out the same
+   whether the print dialog's Margins is "Default" or "None". */
+@page { size: A4; margin: 0; }
 
 @media print {
-  /* No forced A4 height when printing — avoids a blank 2nd page from rounding */
-  .cv-page { min-height: 0; padding-top: 8.74pt; }   /* 11.74pt − the 3pt page margin: page 1 stays put */
+  /* No forced A4 height when printing — avoids a blank 2nd page from rounding.
+     3pt on top and 3.75pt at the bottom of EVERY printed page: "clone" repeats
+     the padding wherever the page box is split across pages (our own margin). */
+  .cv-page {
+    min-height: 0;
+    padding-top: 3pt;
+    padding-bottom: 3.75pt;            /* = PRINT_BOTTOM_PT in js/app.js (the "fits on one page" check) */
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  /* Page 1 starts lower (11.74pt in all): 3pt above + 8.74pt here */
+  .cv-page > :first-child { margin-top: 8.74pt; }
   .cv-pagebreak { display: none; }
   .hl .cv-bullet .cv-text { background: none !important; }
   .cv-bullet[data-path]:hover .cv-text { outline: none; }
+  .cv-page .cv-active { outline: none; box-shadow: none; background: none; }
+  .hl .cv-bullet.cv-active .cv-text { background: none !important; }
 }

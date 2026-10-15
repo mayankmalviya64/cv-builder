@@ -24,6 +24,9 @@ const els = {
 
 const PAGE_HEIGHT_PX = LAYOUT.pageHeightPt * PX_PER_PT;
 const PAGE_WIDTH_PX = LAYOUT.pageWidthPt * PX_PER_PT;
+// Gap kept free at the bottom of every printed page. Must match the
+// padding-bottom of .cv-page in the @media print block of css/cv.css.
+const PRINT_BOTTOM_PT = 3.75;
 
 // ---------- preview ----------
 let previewQueued = false;
@@ -44,7 +47,52 @@ function renderPreview() {
   updateStats();
   fitPreview();
   updateImportPrompt();
+  showActiveLine(false); // the redraw wiped the highlight: put it back (no scrolling)
 }
+
+// ---------- "you are editing this line" highlight ----------
+// Click into any box in the editor and the same text lights up in the preview,
+// so it's easy to see which line of the CV you're changing.
+let activePath = null; // data-bind path of the focused editor box, e.g. 'sections.2.groups.0.bullets.3.text'
+
+/** Find the preview element for an editor path ('….bullets.3.text' → the bullet '….bullets.3'). */
+function previewTarget(path) {
+  const parts = path.split('.');
+  // Try the full path first, then drop the last part ('.text') until something matches.
+  while (parts.length) {
+    const el = els.page.querySelector(`[data-src="${parts.join('.')}"]`);
+    if (el) return el;
+    parts.pop();
+  }
+  return null;
+}
+
+/** Highlight the preview line for activePath; scroll it into view if asked. */
+function showActiveLine(scroll) {
+  els.page.querySelectorAll('.cv-active').forEach(el => el.classList.remove('cv-active'));
+  const el = activePath && previewTarget(activePath);
+  if (!el) return; // nothing focused, or that item is unticked (not on the CV)
+  el.classList.add('cv-active');
+  if (!scroll) return;
+  // Only scroll the preview when the line is off screen, so it doesn't jump around.
+  const box = el.getBoundingClientRect();
+  const view = els.pane.getBoundingClientRect();
+  if (box.top < view.top || box.bottom > view.bottom) {
+    els.pane.scrollBy({ top: box.top + box.height / 2 - view.top - view.height / 2, behavior: 'smooth' });
+  }
+}
+
+els.editor.addEventListener('focusin', event => {
+  const el = event.target;
+  // Only text boxes (not checkboxes or buttons) point at a line of the CV.
+  if (!el.dataset.bind || el.type === 'checkbox') return;
+  activePath = el.dataset.bind;
+  showActiveLine(true);
+});
+els.editor.addEventListener('focusout', () => {
+  activePath = null;
+  showActiveLine(false);
+});
 
 // ---------- "Import your CV" prompt ----------
 // While the untouched sample CV is on screen (a new visitor, or after Reset),
@@ -71,19 +119,26 @@ function updatePageFit() {
   const pageTop = els.page.getBoundingClientRect().top;
   const scale = currentScale || 1;
   const contentBottom = last ? (last.getBoundingClientRect().bottom - pageTop) / scale : 0;
-  // Skynet's footer ends ~2.5pt above the page edge; keep 1pt of safety.
-  const bottomPadding = 1 * PX_PER_PT;
+  // The printed page keeps a 3.75pt gap at the bottom (see @media print in
+  // cv.css), so content must end by 838.5pt, like Skynet (~838.9pt). Measured:
+  // a footer ending lower than this lands on page 2 when printed.
+  const bottomPadding = PRINT_BOTTOM_PT * PX_PER_PT;
   const overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
 
   const marker = els.page.querySelector('.cv-pagebreak');
   if (overflowPx > 0.5) {
     marker.hidden = false;
     els.pageStatus.className = 'page-status bad';
-    els.pageStatus.textContent = `Overflows A4 by ${(overflowPx / PX_PER_PT).toFixed(0)}pt (~${Math.ceil(overflowPx / 15)} lines)`;
+    // Round up, so even a fraction of a point shows as "1pt" (never "0pt").
+    const overPt = Math.max(1, Math.ceil(overflowPx / PX_PER_PT));
+    const lines = Math.ceil(overflowPx / 15);
+    els.pageStatus.textContent = `Overflows A4 by ${overPt}pt (~${lines} line${lines === 1 ? '' : 's'})`;
   } else {
     marker.hidden = true;
     els.pageStatus.className = 'page-status good';
-    els.pageStatus.textContent = `Fits on one A4 page · ${(-overflowPx / PX_PER_PT).toFixed(0)}pt spare`;
+    // Round down, so we never promise space that isn't there (and never "-0pt").
+    const sparePt = Math.max(0, Math.floor(-overflowPx / PX_PER_PT));
+    els.pageStatus.textContent = `Fits on one A4 page · ${sparePt}pt spare`;
   }
 }
 
