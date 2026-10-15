@@ -140,13 +140,30 @@ function normalizeCv(raw) {
   };
 }
 
+/**
+ * "<First name>'s CV", using the name written on the CV. Used as the file
+ * name for both the PDF download and the JSON export.
+ * e.g. "MAYANK MALVIYA" → "Mayank's CV". With no name it is just "CV".
+ */
+function cvFileName(cv) {
+  // Drop formatting marks (**bold**, _italic_) and anything a file name can't hold.
+  const clean = (cv.personal?.name || '').replace(/[*_\\/:"<>|?]/g, ' ').trim();
+  // Skip a leading title like "Dr." or "Mr" so we get the actual first name.
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length > 1 && /^(dr|mr|mrs|ms|miss|prof|ca|er)\.?$/i.test(words[0])) words.shift();
+  let first = words[0] || '';
+  if (!first) return 'CV';
+  // Names imported in ALL CAPS read better as "Mayank" than "MAYANK".
+  if (first === first.toUpperCase()) first = first[0] + first.slice(1).toLowerCase();
+  return `${first}'s CV`;
+}
+
 /** Download the CV as a .json file. */
 function exportCv(cv) {
   const blob = new Blob([JSON.stringify(cv, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
-  const name = (cv.personal?.name || 'cv').trim().replace(/\s+/g, '-').toLowerCase();
   link.href = URL.createObjectURL(blob);
-  link.download = `${name}-cv.json`;
+  link.download = `${cvFileName(cv)}.json`; // e.g. "Mayank's CV.json"
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }

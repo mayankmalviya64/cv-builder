@@ -252,7 +252,15 @@ document.getElementById('btn-print').addEventListener('click', () => {
 window.addEventListener('beforeprint', () => {
   track('download_pdf', { via: printViaButton ? 'button' : 'shortcut' });
   printViaButton = false;
+  // The browser names the saved PDF after the page title, so we swap the
+  // title to e.g. "Mayank's CV" while the dialog is open.
+  document.title = cvFileName(cv);
 });
+// Put the normal tab title back once the print dialog closes.
+window.addEventListener('afterprint', () => { document.title = APP_TITLE; });
+
+const APP_TITLE = document.title; // "CV Builder", from index.html
+
 document.getElementById('btn-export').addEventListener('click', () => {
   exportCv(cv);
   track('export_json');
@@ -298,7 +306,7 @@ els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true
 // updated (that once made correct lines show as "too long"). So now and then we
 // fetch the live index.html, read its ?v= version tag, and compare it with ours.
 
-// Our own version tag, read from this script's URL ("js/app.js?v=20261015a").
+// Our own version tag, read from this script's URL ("js/app.js?v=20261015c").
 const MY_VERSION = (document.currentScript?.src.match(/[?&]v=([\w.-]+)/) || [])[1] || '';
 const UPDATE_CHECK_MS = 5 * 60 * 1000;   // at most one check every 5 minutes
 let lastUpdateCheck = 0;
