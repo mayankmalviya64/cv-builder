@@ -100,6 +100,8 @@ function updateStats() {
     statPaths[st].push(path);
   });
   const score = counts.total ? Math.round((counts.brim / counts.total) * 100) : 0;
+  // Kept for analytics: download_pdf reports how well the CV fits.
+  fitNow = { fit_score: score, perfect: counts.brim, too_short: counts.under, too_long: counts.over };
   // One clickable counter; it's disabled when there's nothing to jump to.
   const counter = (st, label, tip) =>
     `<button type="button" class="stat st-${st}" data-jump="${st}" title="${tip} · click to jump to the next one" ${counts[st] ? '' : 'disabled'}>${counts[st]}<small>${label}</small></button>`;
@@ -109,6 +111,8 @@ function updateStats() {
     ${counter('under', 'too short', 'Under 98% of the line: add a few words')}
     ${counter('over', 'too long', 'Goes onto a 2nd line: cut a few letters')}`;
 }
+
+let fitNow = {}; // latest fit numbers, filled in by updateStats()
 
 // Clicking a counter jumps to the next bullet of that kind; each click moves on
 // to the following one, and after the last it starts again from the top.
@@ -270,7 +274,12 @@ document.getElementById('btn-print').addEventListener('click', () => {
   window.print();
 });
 window.addEventListener('beforeprint', () => {
-  track('download_pdf', { via: printViaButton ? 'button' : 'shortcut' });
+  track('download_pdf', {
+    via: printViaButton ? 'button' : 'shortcut',
+    ...fitNow, // how full the bullets are right now
+    // Active seconds since the last import in this tab (left out if they didn't import).
+    ...(activeSinceImport !== null && { seconds_since_import: activeSinceImport }),
+  });
   printViaButton = false;
   // The browser names the saved PDF after the page title, so we swap the
   // title to e.g. "Mayank's CV" while the dialog is open.
@@ -308,6 +317,7 @@ document.getElementById('import-file').addEventListener('change', async event =>
     let bullets = 0;
     forEachBullet(imported, () => { bullets++; });
     track('cv_import', { source, sections: imported.sections.length, bullets });
+    markImport(); // start the "how long until they download?" stopwatch
   } catch (err) {
     showBanner(err.message || 'Couldn’t import that file.', 'warn');
     // Only the file's extension is sent, never its name.

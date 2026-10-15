@@ -5,6 +5,11 @@
 //   cv_import         – an import worked (with file type + section/bullet counts)
 //   cv_import_failed  – an import showed an error
 //   section_time      – active seconds spent editing one section (see the bottom of this file)
+//   active_time       – active seconds in the whole visit, plus when the tab was opened
+//   wording_tweak     – someone applied one of the suggested wording chips
+//   js_error          – something in the site's code broke (message + file:line)
+// download_pdf also carries the fit score (perfect / too short / too long counts)
+// and the active seconds since the last import ("how long did the CV take?").
 // GA stores the date and time of every event on its own. We also send
 // `local_time` (the visitor's own clock) so you can see the exact minute.
 //
@@ -42,6 +47,26 @@ function track(eventName, params = {}) {
   }
 }
 
+// ---------- JavaScript errors ----------
+// If the site's code breaks for someone, we hear about it. This file loads
+// first, so it also catches errors from the scripts after it. At most 5 per
+// visit, so one error repeating in a loop can't flood GA.
+let errorsSent = 0;
+function trackError(message, where) {
+  if (errorsSent >= 5) return;
+  errorsSent++;
+  track('js_error', { error: String(message || 'Unknown error').slice(0, 100), error_source: where || 'unknown' });
+}
+window.addEventListener('error', event => {
+  // Only the file name and line, e.g. "app.js:120" (not the full web address).
+  const file = (event.filename || '').split('/').pop().split('?')[0];
+  trackError(event.message, file ? `${file}:${event.lineno}` : '');
+});
+// Errors inside async code (a failed Promise nobody caught).
+window.addEventListener('unhandledrejection', event => {
+  trackError(event.reason && event.reason.message || event.reason, 'promise');
+});
+
 // ---------- Time spent per section ----------
 // A stopwatch for each editor card (Header, Academics, Work experience, …).
 // A second only counts when the tab is open AND the person typed, clicked or
@@ -51,7 +76,13 @@ function track(eventName, params = {}) {
 const IDLE_AFTER_MS = 30 * 1000;
 const sectionSeconds = {};   // e.g. { 'Work experience': 95, 'Header': 12 }
 let currentSection = null;   // the card the person is working in right now
-let lastActivity = 0;        // when they last typed / clicked / scrolled
+let lastActivity = Date.now(); // when they last typed / clicked / scrolled / moved the mouse
+let activeSeconds = 0;         // active time in this visit that we haven't sent yet
+let activeSinceImport = null;  // active seconds since the last import (null = no import in this tab yet)
+
+/** app.js calls this after a successful import: restart the "time to make the CV" stopwatch. */
+function markImport() { activeSinceImport = 0; }
+const OPENED_AT = new Date().toString(); // when this tab was opened
 
 // Section titles are typed by the user, so we never send them as they are.
 // We map them to a fixed name; anything we don't recognise becomes 'Other section'.
@@ -85,20 +116,28 @@ function sectionNameFor(el) {
     lastActivity = Date.now();
   }, true);
 });
-// Typing and scrolling anywhere keep the stopwatch running (e.g. reading the preview).
-['keydown', 'wheel'].forEach(type => {
+// Typing, scrolling or moving the mouse anywhere keep the stopwatch running (e.g. reading the preview).
+['keydown', 'wheel', 'pointermove'].forEach(type => {
   document.addEventListener(type, () => { lastActivity = Date.now(); }, { capture: true, passive: true });
 });
 
-// Tick once a second and add the second to the current section if they're active.
+// Tick once a second. A hidden tab (they switched away) or 30s of no activity = the second doesn't count.
 setInterval(() => {
-  if (document.hidden || !currentSection) return;
+  if (document.hidden) return;
   if (Date.now() - lastActivity > IDLE_AFTER_MS) return;
-  sectionSeconds[currentSection] = (sectionSeconds[currentSection] || 0) + 1;
+  activeSeconds++; // the whole visit
+  if (activeSinceImport !== null) activeSinceImport++;
+  if (currentSection) sectionSeconds[currentSection] = (sectionSeconds[currentSection] || 0) + 1;
 }, 1000);
 
-/** Send the collected times and start counting from zero again. */
+/** Send the collected times and start counting from zero again.
+ *  This runs each time they leave the tab, so one visit can send a few
+ *  active_time events; GA adds them up per session to give the visit's total. */
 function sendSectionTimes() {
+  if (activeSeconds > 0) {
+    track('active_time', { seconds: activeSeconds, opened_at: OPENED_AT, transport_type: 'beacon' });
+    activeSeconds = 0;
+  }
   Object.keys(sectionSeconds).forEach(section => {
     // 'beacon' makes the browser deliver it even while the page is closing.
     track('section_time', { section, seconds: sectionSeconds[section], transport_type: 'beacon' });

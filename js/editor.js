@@ -501,6 +501,8 @@ const Editor = (() => {
       el.value = text.replace(tweak.find, tweak.replace);
       setAt(cv, path + '.text', el.value);
       afterTextChange(el, path + '.text', 'structure'); // a tweak = its own undo step
+      // Analytics: is this feature used? `result` = what the chip promised (e.g. 'brim' = perfect fit).
+      track('wording_tweak', { result: (btn.className.match(/\bst-(\w+)/) || [])[1] || 'unknown' });
     } else if (action === 'logo-remove') {
       cv.personal.logo = '';
       changed = true;
