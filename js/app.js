@@ -242,8 +242,21 @@ function importSummary(imported, source) {
 }
 
 // ---------- top-bar buttons ----------
-document.getElementById('btn-print').addEventListener('click', () => window.print());
-document.getElementById('btn-export').addEventListener('click', () => exportCv(cv));
+// Download PDF = the browser's print dialog. We count it on 'beforeprint', so
+// ⌘P / Ctrl+P count too; `via` tells the button and the shortcut apart.
+let printViaButton = false;
+document.getElementById('btn-print').addEventListener('click', () => {
+  printViaButton = true;
+  window.print();
+});
+window.addEventListener('beforeprint', () => {
+  track('download_pdf', { via: printViaButton ? 'button' : 'shortcut' });
+  printViaButton = false;
+});
+document.getElementById('btn-export').addEventListener('click', () => {
+  exportCv(cv);
+  track('export_json');
+});
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Replace your CV with the sample? Export first if you want to keep it.')) replaceCv(clone(SAMPLE_CV));
 });
@@ -256,8 +269,14 @@ document.getElementById('import-file').addEventListener('change', async event =>
     const { cv: imported, source } = await importCvFile(file, cv);
     replaceCv(imported);
     showBanner(importSummary(imported, source), 'info');
+    let bullets = 0;
+    forEachBullet(imported, () => { bullets++; });
+    track('cv_import', { source, sections: imported.sections.length, bullets });
   } catch (err) {
     showBanner(err.message || 'Couldn’t import that file.', 'warn');
+    // Only the file's extension is sent, never its name.
+    const ext = (file.name.match(/\.(\w+)$/) || [])[1] || 'unknown';
+    track('cv_import_failed', { file_type: ext.toLowerCase(), error: (err.message || '').slice(0, 100) });
   }
 });
 els.highlights.addEventListener('change', () => {
@@ -279,7 +298,7 @@ els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true
 // updated (that once made correct lines show as "too long"). So now and then we
 // fetch the live index.html, read its ?v= version tag, and compare it with ours.
 
-// Our own version tag, read from this script's URL ("js/app.js?v=20261014k").
+// Our own version tag, read from this script's URL ("js/app.js?v=20261015a").
 const MY_VERSION = (document.currentScript?.src.match(/[?&]v=([\w.-]+)/) || [])[1] || '';
 const UPDATE_CHECK_MS = 5 * 60 * 1000;   // at most one check every 5 minutes
 let lastUpdateCheck = 0;
