@@ -219,19 +219,33 @@
   flex: 1;
   min-width: 0;
   padding-left: 12pt;                  /* room for the ■ marker */
+  white-space: nowrap;                 /* never let the text box drop below the ■ */
 }
+.cv-text { white-space: normal; }      /* …but long bullets may still wrap inside their box */
 .cv-group:not(.has-year) .cv-bullet { padding-right: 3pt; }
 /* A line with ₹ is 0.175pt taller in Skynet (it draws ₹ in DejaVu Sans, which
    reaches higher than EB Garamond), measured on every ₹ line in two Skynet CVs. */
 .cv-group:not(.has-year) .cv-bullet:has(.cv-rs) { padding-top: 0.175pt; }
 .cv-group.has-year .cv-bullet { padding-right: 0; }
+/* The ■ sits in the SAME line as the text (a zero-width inline box), not
+   floating on top of it. Safari's print layout can push a floating
+   (position: absolute) ■ down onto the next row while its text stays put —
+   two ■ then overlap into one tall bar. Inside the line, ■ and text always
+   move together. position: relative only shifts where it's drawn, so the
+   text never moves and the ■ lands exactly where it used to. */
 .cv-mark {
-  position: absolute;
-  left: 4.65pt;
+  display: inline-block;
+  width: 0;                            /* takes no room: the text still starts 12pt in */
+  position: relative;
+  left: -7.35pt;                       /* 4.65pt from the category border (= 4.65 − 12pt padding) */
   top: 0.49pt;                         /* puts the ■ 1.1pt above the text baseline, like Skynet */
+  vertical-align: top;                 /* line up with the top of the text box */
   font-size: 5.25pt;
   line-height: 11.25pt;
 }
+/* The ■ used to ignore the row's top padding; these keep it in the same spot. */
+.cv-group:not(.has-year) .cv-bullet:has(.cv-rs) .cv-mark { top: 0.315pt; }   /* 0.49 − 0.175 */
+.cv-group.has-year .cv-row > .cv-bullet .cv-mark { top: -0.51pt; }          /* 0.49 − 1pt */
 .cv-text {
   display: inline-block;               /* width is set inline to the exact line capacity */
   vertical-align: top;
@@ -293,6 +307,39 @@
   padding: 2px 4px;
 }
 
+/* Free space under the CV (screen only). Striped = space a bullet could
+   still use; the solid grey strip at the very bottom = the 3.75pt the printer
+   keeps empty (PRINT_BOTTOM_PT in js/app.js). "full" = less than one line
+   left, so the stripes turn grey: there's nothing more to fill. */
+.cv-spare {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(100, 116, 139, 0.28), rgba(100, 116, 139, 0.28)) bottom / 100% 3.75pt no-repeat,
+    repeating-linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0 4px, transparent 4px 8px);
+}
+.cv-spare[hidden] { display: none; }   /* display: flex above would otherwise beat "hidden" */
+.cv-spare.full {
+  background:
+    linear-gradient(rgba(100, 116, 139, 0.28), rgba(100, 116, 139, 0.28)) bottom / 100% 3.75pt no-repeat,
+    repeating-linear-gradient(135deg, rgba(100, 116, 139, 0.14) 0 4px, transparent 4px 8px);
+}
+.cv-spare span {
+  font: 600 7.5px/1 Inter, system-ui, sans-serif;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  margin-bottom: 3.75pt;               /* centre the label in the striped part */
+}
+
 /* Brim highlights: green = at the brim, amber = underfilled, red = spills over */
 .hl .cv-bullet.st-brim  .cv-text { background: rgba(16, 185, 129, 0.13); }
 .hl .cv-bullet.st-under .cv-text { background: rgba(245, 158, 11, 0.22); }
@@ -335,7 +382,7 @@
   }
   /* Page 1 starts lower (11.74pt in all): 3pt above + 8.74pt here */
   .cv-page > :first-child { margin-top: 8.74pt; }
-  .cv-pagebreak { display: none; }
+  .cv-pagebreak, .cv-spare { display: none; }
   .hl .cv-bullet .cv-text { background: none !important; }
   .cv-bullet[data-path]:hover .cv-text { outline: none; }
   .cv-page .cv-active { outline: none; box-shadow: none; background: none; }
