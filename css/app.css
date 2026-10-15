@@ -337,6 +337,35 @@ button, input, textarea { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .btn.import-cta.pulse { animation: none; } }
 .banner.cta { background: var(--brim-bg); color: #065f46; text-align: center; } /* centred message */
 
+/* Privacy card under the Import button. Hidden until you hover the button or
+   reach it with the keyboard (Tab). A short delay stops it flashing as the mouse passes by. */
+.import-wrap { position: relative; display: inline-flex; }
+.import-privacy {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
+  width: 300px; max-width: calc(100vw - 32px);
+  padding: 12px 14px; border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); border: 1px solid var(--brim);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 12px 32px rgba(15, 23, 42, 0.12);
+  font-size: 12.5px; line-height: 1.45; text-align: left;
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0s 0.15s;
+  pointer-events: none;
+}
+/* Little arrow pointing up at the button */
+.import-privacy::before {
+  content: ''; position: absolute; top: -6px; right: 28px; width: 10px; height: 10px;
+  background: var(--panel); border-left: 1px solid var(--brim); border-top: 1px solid var(--brim);
+  transform: rotate(45deg);
+}
+.import-privacy strong { display: block; margin-bottom: 4px; color: #065f46; font-size: 13px; }
+.import-privacy small { display: block; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
+.import-wrap:hover .import-privacy,
+.import-wrap:focus-within .import-privacy {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity 0.15s 0.2s, transform 0.15s 0.2s, visibility 0s 0.2s;
+}
+@media (prefers-reduced-motion: reduce) { .import-privacy { transition: none; transform: none; } }
+
 /* Undo / redo buttons in the top bar */
 .btn.icon { padding: 0 10px; font-size: 17px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
