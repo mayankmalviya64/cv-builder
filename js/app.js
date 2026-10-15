@@ -27,6 +27,10 @@ const PAGE_WIDTH_PX = LAYOUT.pageWidthPt * PX_PER_PT;
 // Gap kept free at the bottom of every printed page. Must match the
 // padding-bottom of .cv-page in the @media print block of css/cv.css.
 const PRINT_BOTTOM_PT = 3.75;
+// How much height one more bullet adds: a line in an internship/project box,
+// and a row in a section with a year column (see .cv-rows / .cv-row in cv.css).
+const EXP_LINE_PT = 11.25;
+const YEAR_ROW_PT = 12.375;
 
 // ---------- preview ----------
 let previewQueued = false;
@@ -42,7 +46,11 @@ function queuePreview() {
 }
 
 function renderPreview() {
-  els.page.innerHTML = renderCvHtml(cv) + '<div class="cv-pagebreak" hidden><span>A4 page ends here</span></div>';
+  // Two screen-only helpers go after the CV (never printed): the red
+  // "page ends here" line, and the shaded free space at the bottom.
+  els.page.innerHTML = renderCvHtml(cv)
+    + '<div class="cv-pagebreak" hidden><span>A4 page ends here</span></div>'
+    + '<div class="cv-spare" hidden><span></span></div>';
   updatePageFit();
   updateStats();
   fitPreview();
@@ -115,7 +123,8 @@ function updateImportPrompt() {
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */
 function updatePageFit() {
   // Height of the content itself (the page box is at least one A4 tall).
-  const last = els.page.lastElementChild.previousElementSibling; // element before the page-break marker
+  const parts = els.page.querySelectorAll(':scope > :not(.cv-pagebreak):not(.cv-spare)');
+  const last = parts[parts.length - 1]; // the CV's last element (skips the helpers)
   const pageTop = els.page.getBoundingClientRect().top;
   const scale = currentScale || 1;
   const contentBottom = last ? (last.getBoundingClientRect().bottom - pageTop) / scale : 0;
@@ -126,6 +135,8 @@ function updatePageFit() {
   const overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
 
   const marker = els.page.querySelector('.cv-pagebreak');
+  const spareBox = els.page.querySelector('.cv-spare');
+  spareBox.hidden = true;
   if (overflowPx > 0.5) {
     marker.hidden = false;
     els.pageStatus.className = 'page-status bad';
@@ -137,9 +148,32 @@ function updatePageFit() {
     marker.hidden = true;
     els.pageStatus.className = 'page-status good';
     // Round down, so we never promise space that isn't there (and never "-0pt").
-    const sparePt = Math.max(0, Math.floor(-overflowPx / PX_PER_PT));
-    els.pageStatus.textContent = `Fits on one A4 page · ${sparePt}pt spare`;
+    const exactSparePt = Math.max(0, -overflowPx / PX_PER_PT);
+    const sparePt = Math.floor(exactSparePt);
+    const message = spareMessage(exactSparePt, sparePt);
+    els.pageStatus.textContent = message;
+    // Shade the empty space below the CV, so the page shows what the badge says:
+    // a striped band = space you could still use, a grey strip = the printer's
+    // 3.75pt gap that must stay empty.
+    spareBox.hidden = false;
+    spareBox.style.top = `${contentBottom}px`;
+    spareBox.style.height = `${PAGE_HEIGHT_PX - contentBottom}px`;
+    spareBox.classList.toggle('full', exactSparePt < EXP_LINE_PT);
+    spareBox.querySelector('span').textContent = message;
   }
+}
+
+/** Badge text: say plainly whether one more bullet still fits on the page. */
+function spareMessage(exactPt, shownPt) {
+  if (exactPt >= YEAR_ROW_PT) {
+    const more = Math.floor(exactPt / YEAR_ROW_PT);
+    return `Room for ${more} more bullet${more === 1 ? '' : 's'} · ${shownPt}pt spare`;
+  }
+  if (exactPt >= EXP_LINE_PT) {
+    // Enough for an internship/project line, not for a row with a year column.
+    return `Room for 1 more internship/project bullet · ${shownPt}pt spare`;
+  }
+  return `Page full · ${shownPt}pt left (another bullet needs at least ${EXP_LINE_PT}pt)`;
 }
 
 /** Top-bar counters: how many bullets are at the brim / under / over. */
