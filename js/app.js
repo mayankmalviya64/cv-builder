@@ -90,19 +90,39 @@ function updatePageFit() {
 /** Top-bar counters: how many bullets are at the brim / under / over. */
 function updateStats() {
   const counts = { brim: 0, under: 0, over: 0, total: 0 };
+  // Remember where each kind of bullet is, so clicking a counter can jump there.
+  statPaths = { brim: [], under: [], over: [] };
   forEachBullet(cv, (bullet, path, capacityPt) => {
     const st = analyzeBullet(bullet.text, capacityPt).status;
     if (st === 'empty') return;
     counts.total++;
     counts[st]++;
+    statPaths[st].push(path);
   });
   const score = counts.total ? Math.round((counts.brim / counts.total) * 100) : 0;
+  // One clickable counter; it's disabled when there's nothing to jump to.
+  const counter = (st, label, tip) =>
+    `<button type="button" class="stat st-${st}" data-jump="${st}" title="${tip} · click to jump to the next one" ${counts[st] ? '' : 'disabled'}>${counts[st]}<small>${label}</small></button>`;
   els.stats.innerHTML = `
     <span class="stat score" title="Share of bullets that fill their line perfectly">${score}%<small>fit score</small></span>
-    <span class="stat st-brim" title="Fills 98–100% of its line">${counts.brim}<small>perfect</small></span>
-    <span class="stat st-under" title="Under 98% of the line: add a few words">${counts.under}<small>too short</small></span>
-    <span class="stat st-over" title="Goes onto a 2nd line: cut a few letters">${counts.over}<small>too long</small></span>`;
+    ${counter('brim', 'perfect', 'Fills 98–100% of its line')}
+    ${counter('under', 'too short', 'Under 98% of the line: add a few words')}
+    ${counter('over', 'too long', 'Goes onto a 2nd line: cut a few letters')}`;
 }
+
+// Clicking a counter jumps to the next bullet of that kind; each click moves on
+// to the following one, and after the last it starts again from the top.
+let statPaths = { brim: [], under: [], over: [] };
+let lastJump = null; // the bullet we jumped to last time, e.g. 'sections.2.groups.0.bullets.3'
+els.stats.addEventListener('click', event => {
+  const btn = event.target.closest('[data-jump]');
+  if (!btn) return;
+  const list = statPaths[btn.dataset.jump];
+  if (!list.length) return;
+  const prev = list.indexOf(lastJump); // -1 if we haven't jumped to one of these yet
+  lastJump = list[(prev + 1) % list.length];
+  Editor.focusBullet(lastJump);
+});
 
 // ---------- scale the A4 page to fit the right-hand pane ----------
 let currentScale = 1;
