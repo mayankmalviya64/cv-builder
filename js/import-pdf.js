@@ -457,6 +457,8 @@ function bulletSection(title, note, body, markers, cells = []) {
     }
   }
   const bulletYs = bulletLines.map(b => b.y);
+  // Heights of the "Project Title: …" lines (used to spot short company names just above them).
+  const titleYs = body.filter(l => l.segs.some(s => s.x0 < 108 && /^project title/i.test(s.text))).map(l => l.y);
   for (const l of body) {
     const left = l.segs.filter(s => s.x0 < 108);
     if (!left.length) continue;
@@ -464,7 +466,11 @@ function bulletSection(title, note, body, markers, cells = []) {
     const beside = bulletYs.some(y => near(y, l.y, 1.5))
       || (bulletYs.some(y => y < l.y && l.y - y < 9) && bulletYs.some(y => y > l.y && y - l.y < 9));
     const inBulletColumn = s => s.x0 > 112 && s.x0 < 125;
-    const startsEntry = /^project title/i.test(left[0].text)
+    // A short company name with no role or dates ("EY", "DoYou") fits inside the
+    // grey column like a label would. It's a company line if a "Project Title"
+    // line sits right under it (and no bullets are beside it).
+    const aboveTitle = !beside && titleYs.some(y => y > l.y && y - l.y < 14);
+    const startsEntry = /^project title/i.test(left[0].text) || aboveTitle
       || l.segs.some(s => s !== left[0] && !inBulletColumn(s) && s.x1 > 530 && !isYearText(s.text));
     // Everything inside the grey category column is a label (unless it's a "Project Title" line).
     const insideColumn = left.every(s => s.x1 < 110) && !/^project title/i.test(left[0].text);
