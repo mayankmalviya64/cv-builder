@@ -11,7 +11,7 @@
 // only counts and the file type.
 
 // Your GA4 "Measurement ID" (Admin → Data streams → your web stream). Starts with G-.
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX';
+const GA_MEASUREMENT_ID = 'G-RXHE3B22RP';
 
 // Only track the live site, so local testing doesn't add fake visits.
 const ANALYTICS_ON = /\.github\.io$/.test(location.hostname) && !GA_MEASUREMENT_ID.includes('XXXX');
