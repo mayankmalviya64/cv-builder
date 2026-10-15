@@ -254,29 +254,13 @@ window.addEventListener('beforeprint', () => {
   printViaButton = false;
   // The browser names the saved PDF after the page title, so we swap the
   // title to e.g. "Mayank's CV" while the dialog is open.
-  document.title = pdfFileName(cv);
+  document.title = cvFileName(cv);
 });
 // Put the normal tab title back once the print dialog closes.
 window.addEventListener('afterprint', () => { document.title = APP_TITLE; });
 
 const APP_TITLE = document.title; // "CV Builder", from index.html
 
-/**
- * "<First name>'s CV", using the name written on the CV.
- * e.g. "MAYANK MALVIYA" → "Mayank's CV". With no name it is just "CV".
- */
-function pdfFileName(cv) {
-  // Drop formatting marks (**bold**, _italic_) and anything a file name can't hold.
-  const clean = (cv.personal?.name || '').replace(/[*_\\/:"<>|?]/g, ' ').trim();
-  // Skip a leading title like "Dr." or "Mr" so we get the actual first name.
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length > 1 && /^(dr|mr|mrs|ms|miss|prof|ca|er)\.?$/i.test(words[0])) words.shift();
-  let first = words[0] || '';
-  if (!first) return 'CV';
-  // Names imported in ALL CAPS read better as "Mayank" than "MAYANK".
-  if (first === first.toUpperCase()) first = first[0] + first.slice(1).toLowerCase();
-  return `${first}'s CV`;
-}
 document.getElementById('btn-export').addEventListener('click', () => {
   exportCv(cv);
   track('export_json');
@@ -322,7 +306,7 @@ els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true
 // updated (that once made correct lines show as "too long"). So now and then we
 // fetch the live index.html, read its ?v= version tag, and compare it with ours.
 
-// Our own version tag, read from this script's URL ("js/app.js?v=20261015b").
+// Our own version tag, read from this script's URL ("js/app.js?v=20261015c").
 const MY_VERSION = (document.currentScript?.src.match(/[?&]v=([\w.-]+)/) || [])[1] || '';
 const UPDATE_CHECK_MS = 5 * 60 * 1000;   // at most one check every 5 minutes
 let lastUpdateCheck = 0;
