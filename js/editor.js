@@ -447,24 +447,74 @@ const Editor = (() => {
     }
   }
 
-  /** Shrink the uploaded logo (max 600px wide) so it fits in browser storage. */
+  // Logo quality rules. Chrome puts the image into the PDF at the exact pixel size we
+  // store, so a small stored copy prints blurry. (The old code always cut logos down to
+  // 600px wide, which made the text inside them fuzzy.)
+  const LOGO_KEEP_AS_IS_BYTES = 1.5 * 1024 * 1024;  // files up to 1.5 MB are kept untouched
+  const LOGO_MAX_WIDTH = 2400;                       // bigger files shrink to this (~800 dpi in the 220pt logo box)
+  const LOGO_KEEP_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif'];
+
+  /** Read the uploaded logo at full quality; only very large files get resized. */
   function readLogo(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, 600 / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        getCv().personal.logo = canvas.toDataURL('image/png');
+      const original = reader.result;  // "data:image/png;base64,..."
+      const saveLogo = (dataUrl) => {
+        getCv().personal.logo = dataUrl;
         render();
         onChange('structure');
       };
-      img.src = reader.result;
+
+      // Normal-sized logos: keep the original file exactly, with no re-encoding and no
+      // quality loss. SVG logos stay sharp at any zoom.
+      if (LOGO_KEEP_TYPES.includes(file.type) && file.size <= LOGO_KEEP_AS_IS_BYTES) {
+        saveLogo(original);
+        return;
+      }
+
+      // Huge files: shrink them so they fit in browser storage (about 5 MB).
+      const img = new Image();
+      img.onload = () => saveLogo(shrinkImage(img, LOGO_MAX_WIDTH, file.type));
+      img.src = original;
     };
     reader.readAsDataURL(file);
+  }
+
+  /**
+   * Resize an image to at most `maxWidth` pixels wide while keeping text crisp.
+   * Shrinking a lot in one step makes thin lines jagged, so we halve the size
+   * a few times and then do one last step to the exact size.
+   */
+  function shrinkImage(img, maxWidth, type) {
+    const targetW = Math.min(img.width, maxWidth);
+    const targetH = Math.round(img.height * (targetW / img.width));
+
+    let source = img;
+    let w = img.width;
+    let h = img.height;
+    // Halve while we're still more than twice the target size.
+    while (w / 2 >= targetW) {
+      w = Math.round(w / 2);
+      h = Math.round(h / 2);
+      source = drawScaled(source, w, h);
+    }
+    const finalCanvas = drawScaled(source, targetW, targetH);
+    // Photos stay JPEG (much smaller); everything else becomes PNG (keeps transparency).
+    return type === 'image/jpeg'
+      ? finalCanvas.toDataURL('image/jpeg', 0.92)
+      : finalCanvas.toDataURL('image/png');
+  }
+
+  /** Draw `source` onto a new w×h canvas using the browser's best smoothing. */
+  function drawScaled(source, w, h) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, w, h);
+    return canvas;
   }
 
   function handleClick(event) {
