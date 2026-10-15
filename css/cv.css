@@ -299,6 +299,16 @@
 .hl .cv-bullet.st-over  .cv-text { background: rgba(239, 68, 68, 0.22); }
 .cv-bullet[data-path] { cursor: pointer; }
 .cv-bullet[data-path]:hover .cv-text { outline: 1px solid #0ea5e9; outline-offset: 0; }
+/* The line whose editor box has the cursor (see showActiveLine in app.js).
+   outline + box-shadow don't take up space, so the layout never shifts. */
+.cv-page .cv-active {
+  outline: 1.5px solid #0284c7;
+  outline-offset: 0.5pt;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25);
+  background-color: rgba(14, 165, 233, 0.12);
+  border-radius: 1pt;
+}
+.hl .cv-bullet.cv-active .cv-text { background-color: rgba(14, 165, 233, 0.16); }
 
 /* ---- Printing ---- */
 /* Skynet leaves 3pt at the top and bottom of every printed page: page 2 and 3
@@ -315,4 +325,6 @@
   .cv-pagebreak { display: none; }
   .hl .cv-bullet .cv-text { background: none !important; }
   .cv-bullet[data-path]:hover .cv-text { outline: none; }
+  .cv-page .cv-active { outline: none; box-shadow: none; background: none; }
+  .hl .cv-bullet.cv-active .cv-text { background: none !important; }
 }
