@@ -24,6 +24,9 @@ const els = {
 
 const PAGE_HEIGHT_PX = LAYOUT.pageHeightPt * PX_PER_PT;
 const PAGE_WIDTH_PX = LAYOUT.pageWidthPt * PX_PER_PT;
+// Gap kept free at the bottom of every printed page. Must match the
+// padding-bottom of .cv-page in the @media print block of css/cv.css.
+const PRINT_BOTTOM_PT = 3.75;
 
 // ---------- preview ----------
 let previewQueued = false;
@@ -116,19 +119,26 @@ function updatePageFit() {
   const pageTop = els.page.getBoundingClientRect().top;
   const scale = currentScale || 1;
   const contentBottom = last ? (last.getBoundingClientRect().bottom - pageTop) / scale : 0;
-  // Skynet's footer ends ~2.5pt above the page edge; keep 1pt of safety.
-  const bottomPadding = 1 * PX_PER_PT;
+  // The printed page keeps a 3.75pt gap at the bottom (see @media print in
+  // cv.css), so content must end by 838.5pt, like Skynet (~838.9pt). Measured:
+  // a footer ending lower than this lands on page 2 when printed.
+  const bottomPadding = PRINT_BOTTOM_PT * PX_PER_PT;
   const overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
 
   const marker = els.page.querySelector('.cv-pagebreak');
   if (overflowPx > 0.5) {
     marker.hidden = false;
     els.pageStatus.className = 'page-status bad';
-    els.pageStatus.textContent = `Overflows A4 by ${(overflowPx / PX_PER_PT).toFixed(0)}pt (~${Math.ceil(overflowPx / 15)} lines)`;
+    // Round up, so even a fraction of a point shows as "1pt" (never "0pt").
+    const overPt = Math.max(1, Math.ceil(overflowPx / PX_PER_PT));
+    const lines = Math.ceil(overflowPx / 15);
+    els.pageStatus.textContent = `Overflows A4 by ${overPt}pt (~${lines} line${lines === 1 ? '' : 's'})`;
   } else {
     marker.hidden = true;
     els.pageStatus.className = 'page-status good';
-    els.pageStatus.textContent = `Fits on one A4 page · ${(-overflowPx / PX_PER_PT).toFixed(0)}pt spare`;
+    // Round down, so we never promise space that isn't there (and never "-0pt").
+    const sparePt = Math.max(0, Math.floor(-overflowPx / PX_PER_PT));
+    els.pageStatus.textContent = `Fits on one A4 page · ${sparePt}pt spare`;
   }
 }
 
