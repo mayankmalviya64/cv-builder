@@ -268,6 +268,14 @@ document.getElementById('btn-export').addEventListener('click', () => {
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Replace your CV with the sample? Export first if you want to keep it.')) replaceCv(clone(SAMPLE_CV));
 });
+// The Import "button" is a <label>, which the keyboard can't press by itself:
+// Enter or Space opens the file picker, like a real button.
+els.importBtn.addEventListener('keydown', event => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    document.getElementById('import-file').click();
+  }
+});
 document.getElementById('import-file').addEventListener('change', async event => {
   const file = event.target.files[0];
   event.target.value = ''; // allow picking the same file again later
