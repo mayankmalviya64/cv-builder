@@ -177,8 +177,7 @@ const SAMPLE_CV = {
                   "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88%** FCR target via **7 initiatives** & an SPC plan"
                 },
                 {
-                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today",
-                  "hidden": true
+                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today"
                 }
               ]
             }
@@ -212,8 +211,7 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint",
-                  "hidden": true
+                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
@@ -305,7 +303,7 @@ const SAMPLE_CV = {
               "year": "2026"
             },
             {
-              "text": "National Finalist for **Thouccentric & Xoriant** Bottoms Up 5.0-AI for Consulting placing among **top 15** teams",
+              "text": "National Finalist for **Thoucentric & Xoriant** Bottoms Up 5.0 - AI for Consulting placing among **top 15** teams",
               "year": "2026"
             },
             {
@@ -336,7 +334,8 @@ const SAMPLE_CV = {
             },
             {
               "text": "Attained **AA** in **Economic Development** for policy-driven analysis of **India’s growth trajectory** (1947-2011)",
-              "year": "2021"
+              "year": "2021",
+              "hidden": true
             }
           ]
         },
@@ -349,7 +348,8 @@ const SAMPLE_CV = {
             },
             {
               "text": "Acquired certification of **Lean Six Sigma Green Belt** online from Advanced Innovation Group Pro Excellence",
-              "year": "2025"
+              "year": "2025",
+              "hidden": true
             }
           ]
         },
