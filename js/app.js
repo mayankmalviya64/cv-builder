@@ -294,6 +294,37 @@ document.getElementById('btn-export').addEventListener('click', () => {
   exportCv(cv);
   track('export_json');
 });
+
+// ---------- Share with friends ----------
+// The link carries ?utm_source=friend_share, so Google Analytics can count
+// how many visitors arrived because a friend shared it.
+const SHARE_URL = 'https://mayankmalviya64.github.io/cv-builder/?utm_source=friend_share&utm_medium=referral';
+const SHARE_TEXT = 'Build a one-page CV where every bullet fills its line to the brim:';
+const shareBtn = document.getElementById('btn-share');
+const SHARE_LABEL = shareBtn.textContent;
+
+shareBtn.addEventListener('click', async () => {
+  // Phones (and some laptops) have a built-in share sheet: WhatsApp, Messages, etc.
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'CV Builder', text: SHARE_TEXT, url: SHARE_URL });
+      track('share', { method: 'share_sheet' });
+    } catch (err) {
+      // They closed the share sheet without picking anything: nothing to do.
+    }
+    return;
+  }
+  // Otherwise copy the link, and say so on the button for 2 seconds.
+  try {
+    await navigator.clipboard.writeText(`${SHARE_TEXT} ${SHARE_URL}`);
+    shareBtn.textContent = 'Link copied ✓';
+    setTimeout(() => { shareBtn.textContent = SHARE_LABEL; }, 2000);
+    track('share', { method: 'copy_link' });
+  } catch (err) {
+    // Copying was blocked: show the link so they can copy it by hand.
+    showBanner(`Copy this link to share: ${SHARE_URL}`, 'info');
+  }
+});
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Replace your CV with the sample? Export first if you want to keep it.')) replaceCv(clone(SAMPLE_CV));
 });
