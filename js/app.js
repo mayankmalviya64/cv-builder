@@ -53,7 +53,7 @@ function renderPreview() {
   // "page ends here" line, and the shaded free space at the bottom.
   els.page.innerHTML = renderCvHtml(cv)
     + '<div class="cv-pagebreak" hidden><span>A4 page ends here</span></div>'
-    + '<div class="cv-spare" hidden><span></span></div>';
+    + '<div class="cv-spare" hidden></div>';
   updatePageFit();
   updateStats();
   fitPreview();
@@ -175,7 +175,8 @@ function updatePageFit() {
     spareBox.style.top = `${contentBottom}px`;
     spareBox.style.height = `${PAGE_HEIGHT_PX - contentBottom}px`;
     spareBox.classList.toggle('full', exactSparePt < EXP_LINE_PT);
-    spareBox.querySelector('span').textContent = message;
+    // The message itself shows only in the badge above the preview, so nothing
+    // is written over the LinkedIn footer that sits inside this band.
     centerFooter(pageTop, scale);
   }
 }

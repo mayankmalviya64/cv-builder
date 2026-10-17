@@ -318,29 +318,16 @@
   left: 0;
   right: 0;
   pointer-events: none;
-  display: flex;
-  align-items: flex-start;   /* label at the top: the footer link sits in the middle */
-  padding-top: 2pt;
-  justify-content: center;
   overflow: hidden;
   background:
     linear-gradient(rgba(100, 116, 139, 0.28), rgba(100, 116, 139, 0.28)) bottom / 100% 3.75pt no-repeat,
     repeating-linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0 4px, transparent 4px 8px);
 }
-.cv-spare[hidden] { display: none; }   /* display: flex above would otherwise beat "hidden" */
+.cv-spare[hidden] { display: none; }
 .cv-spare.full {
   background:
     linear-gradient(rgba(100, 116, 139, 0.28), rgba(100, 116, 139, 0.28)) bottom / 100% 3.75pt no-repeat,
     repeating-linear-gradient(135deg, rgba(100, 116, 139, 0.14) 0 4px, transparent 4px 8px);
-}
-.cv-spare span {
-  font: 600 7.5px/1 Inter, system-ui, sans-serif;
-  color: #475569;
-  background: rgba(255, 255, 255, 0.85);
-  padding: 1px 4px;
-  border-radius: 3px;
-  white-space: nowrap;
-  margin-bottom: 3.75pt;               /* centre the label in the striped part */
 }
 
 /* Brim highlights: green = at the brim, amber = underfilled, red = spills over */
