@@ -76,7 +76,7 @@ const SAMPLE_CV = {
               "label": "Roles &\nResponsibilities",
               "bullets": [
                 {
-                  "text": "Enabled FT impact evaluation across 4 MAU buckets via product analytics KPIs, pain point research and Databricks SQL"
+                  "text": "Initiated **FT impact** evaluation across **4 MAU** buckets via product analytics KPIs, pain point research & Databricks **SQL**"
                 },
                 {
                   "text": "Enhanced **CRM** personalization via **7-persona SQL model** powering product discovery, prioritization & **GTM** strategy"
@@ -113,13 +113,13 @@ const SAMPLE_CV = {
               "label": "Roles &\nResponsibilities",
               "bullets": [
                 {
-                  "text": "Mapped **94M+** push impressions to trade-level brokerage in Databricks SQL, using **T+0/4** revenue attribution windows"
+                  "text": "Mapped **94M+** push impressions to trade-level brokerage using **T+0/4** **revenue** attribution windows via Databricks SQL"
                 },
                 {
                   "text": "Improved attribution accuracy for **Hyper Alert** campaign re-engagement, flagging clicked-but-not-traded user drop-offs"
                 },
                 {
-                  "text": "Boosted CTR comparability across **20+** campaigns via cross-channel funnel analysis & **Push-InApp** event normalisation"
+                  "text": "Boosted **CTR** comparability across **20+** campaigns via cross-channel funnel analysis & **Push-InApp** event normalisation"
                 }
               ]
             },
@@ -127,10 +127,13 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Optimized query run time by scanning **precise 5-10%** of data via **3-tier** data mart on **30+ events**, client & monthly split"
+                  "text": "Optimized query run time by 80-85% via scanning precise **5-10%** data through 3-tier data mart on 30+ event & client split"
                 },
                 {
-                  "text": "Quantified ₹10 Cr+ CDP brokerage revenue via Databricks attribution model, enabling product-KPI & revenue tracking"
+                  "text": "Quantified **₹10 Cr+** CDP brokerage revenue via Databricks attribution model enabling product-KPI & revenue tracking"
+                },
+                {
+                  "text": "Revamped lead prioritization for **1 Lakh+** users via viewed-not-traded cohort, enabling conversion & win-back decisions"
                 }
               ]
             }
@@ -177,7 +180,8 @@ const SAMPLE_CV = {
                   "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88%** FCR target via **7 initiatives** & an SPC plan"
                 },
                 {
-                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today"
+                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today",
+                  "hidden": true
                 }
               ]
             }
@@ -211,7 +215,8 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
+                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint",
+                  "hidden": true
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
@@ -245,7 +250,7 @@ const SAMPLE_CV = {
               "year": "2026"
             },
             {
-              "text": "Strengthened issue-resolution cadence closing 100+ academic concerns under-24hr TAT via prioritised escalation",
+              "text": "Strengthened issue-resolution cadence closing 100+ academic concerns under-**24hr** TAT via prioritised escalation",
               "year": "2026"
             }
           ]
@@ -333,9 +338,8 @@ const SAMPLE_CV = {
               "year": "2022"
             },
             {
-              "text": "Attained **AA** in **Economic Development** for policy-driven analysis of **India’s growth trajectory** (1947-2011)",
-              "year": "2021",
-              "hidden": true
+              "text": "Attained** AA **in** Economic Development **for policy-driven analysis of** India’s growth trajectory **(1947-2011)",
+              "year": "2021"
             }
           ]
         },
