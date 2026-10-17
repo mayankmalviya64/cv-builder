@@ -215,9 +215,6 @@ const SAMPLE_CV = {
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
-                },
-                {
-                  "text": "Projected **4.6:1** LTV to CAC, regional revenue from **₹14 Cr-₹46 Cr** and market share from **8% to 15%** in **36 months**"
                 }
               ]
             }
@@ -239,10 +236,6 @@ const SAMPLE_CV = {
             },
             {
               "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
-              "year": "2026"
-            },
-            {
-              "text": "Authored **80+** page case-led **marketing compendium** on positioning, portfolio and pricing for **1000+** students",
               "year": "2026"
             },
             {
@@ -337,6 +330,19 @@ const SAMPLE_CV = {
             {
               "text": "Successfully acquired UiPath Academic Alliance Student **Agentic Automation Associate** certification by **PwC**",
               "year": "2025"
+            },
+            {
+              "text": "Accredited** **with **Data Analysis | SQL, Tableau, Power BI & Excel** online** **certification from Udemy platform",
+              "year": "2025"
+            }
+          ]
+        },
+        {
+          "label": "Extra-Curriculars",
+          "bullets": [
+            {
+              "text": "Delivered **40+** **hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
+              "year": "2020"
             }
           ]
         }
