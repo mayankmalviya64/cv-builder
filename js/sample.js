@@ -17,7 +17,7 @@
 const SAMPLE_CV = {
   "personal": {
     "name": "Mayank Malviya",
-    "line1": "Male, 25 years",
+    "line1": "Male , 25 years",
     "line2": "MBA, Batch 25 - 27",
     "logo": "assets/iim-mumbai-logo.png"
   },
@@ -37,7 +37,7 @@ const SAMPLE_CV = {
         [
           "MBA",
           "Indian Institute of Management, Mumbai",
-          "Pursuing",
+          "7.58/10",
           "2027"
         ],
         [
@@ -68,18 +68,18 @@ const SAMPLE_CV = {
         {
           "org": "Motilal Oswal Financial Services Ltd.",
           "role": "Product Growth & Strategy Intern",
-          "dates": "Apr’26-May’26",
-          "subtitle": "Project Title: Customer Retention: Analytics, Customer Insights & Initiatives",
+          "dates": "Apr'26-May'26",
+          "subtitle": "Project Title: Customer Retention: Analytics, Customer Insights & User Persona Framework",
           "duration": "",
           "groups": [
             {
               "label": "Roles &\nResponsibilities",
               "bullets": [
                 {
-                  "text": "Enabled FT impact evaluation across 4 MAU buckets via product analytics KPIs, pain point research and Databricks SQL"
+                  "text": "Enhanced **CRM** personalization via **7-persona** **SQL model** powering product discovery, prioritization & **GTM** strategy"
                 },
                 {
-                  "text": "Enhanced **CRM** personalization via **7-persona SQL model** powering product discovery, prioritization & **GTM** strategy"
+                  "text": "Initiated **FT impact** evaluation across **4 MAU** buckets via product analytics KPIs, pain point research & Databricks **SQL**"
                 },
                 {
                   "text": "Enabled automated monthly MIS refresh via unified SQL table consolidating demographics, app & calling-behaviour data"
@@ -105,7 +105,7 @@ const SAMPLE_CV = {
         {
           "org": "Motilal Oswal Financial Services Limited",
           "role": "Product Growth & Strategy Intern",
-          "dates": "Apr’26-May’26",
+          "dates": "Apr'26-May'26",
           "subtitle": "Project Title: Multi-Channel Campaign-to-Revenue Attribution & Conversion Funnel Analytics",
           "duration": "",
           "groups": [
@@ -113,13 +113,13 @@ const SAMPLE_CV = {
               "label": "Roles &\nResponsibilities",
               "bullets": [
                 {
-                  "text": "Mapped **94M+** push impressions to trade-level brokerage in Databricks SQL, using **T+0/4** revenue attribution windows"
+                  "text": "Mapped **94M+** push impressions to trade-level brokerage using **T+0/4** **revenue** attribution windows via Databricks SQL"
                 },
                 {
                   "text": "Improved attribution accuracy for **Hyper Alert** campaign re-engagement, flagging clicked-but-not-traded user drop-offs"
                 },
                 {
-                  "text": "Boosted CTR comparability across **20+** campaigns via cross-channel funnel analysis & **Push-InApp** event normalisation"
+                  "text": "Boosted **CTR** comparability across **20+** campaigns via cross-channel funnel analysis & **Push-InApp** event normalisation"
                 }
               ]
             },
@@ -127,10 +127,13 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Optimized query run time by scanning **precise 5-10%** of data via **3-tier** data mart on **30+ events**, client & monthly split"
+                  "text": "Quantified **₹10** **Cr+** CDP brokerage revenue via Databricks attribution model enabling product-KPI & revenue tracking"
                 },
                 {
-                  "text": "Quantified ₹10 Cr+ CDP brokerage revenue via Databricks attribution model, enabling product-KPI & revenue tracking"
+                  "text": "Revamped **lead** prioritization for **1 Lakh+** users via viewed-not-traded cohort, enabling conversion & **win**-back decisions"
+                },
+                {
+                  "text": "Optimized query run time by 80-85% via scanning precise **5-10%** data through 3-tier data mart on 30+ event & client split"
                 }
               ]
             }
@@ -146,7 +149,7 @@ const SAMPLE_CV = {
         {
           "org": "Indian Institute of Management Mumbai",
           "role": "",
-          "dates": "Aug’26-Aug’26",
+          "dates": "Aug'26-Aug'26",
           "subtitle": "Project Title: High Customer DSAT Scores with Web Based Digital Services",
           "duration": "3 Weeks",
           "groups": [
@@ -154,10 +157,10 @@ const SAMPLE_CV = {
               "label": "Project Details",
               "bullets": [
                 {
-                  "text": "Diagnosed an **8 month** contractual DSAT across **325** agent and ticket records using Anova, Cramer’s V and Tukey HSD"
+                  "text": "Diagnosed an **8 month **contractual DSAT across **325** agent and ticket records using Anova, Cramer's V and Tukey HSD"
                 },
                 {
-                  "text": "Led **DMAIC** root cause study via **Fishbone, 5 Whys, FMEA, Pareto, I-MR** capability, sizing the baseline at **0.9 sigma**"
+                  "text": "Led a **DMAIC** root cause study via Fishbone, **5 Whys, FMEA, Pareto, I-MR **capability, sizing the baseline at **0.9 sigma**"
                 },
                 {
                   "text": "Quantified Cost of Poor Quality at **USD 4.58M** annually and built a **3-year** business case for a **USD 2.57M** programme"
@@ -174,10 +177,7 @@ const SAMPLE_CV = {
                   "text": "Established **contact count** as the driver of **88%** of satisfaction variance and support tenure as a variable misdirecting plans"
                 },
                 {
-                  "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88%** FCR target via **7 initiatives** & an SPC plan"
-                },
-                {
-                  "text": "Projected **203% ROI**, at **USD 3.92M NPV** and payback in month **12**, with **CoPQ at 62.8%** of the contract value today"
+                  "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88% **FCR target via **7 initiatives** & an SPC plan"
                 }
               ]
             }
@@ -194,7 +194,7 @@ const SAMPLE_CV = {
               "label": "Project Details",
               "bullets": [
                 {
-                  "text": "Diagnosed a footwear brand’s **8%** share gap in **8 NE** states via PESTEL, SWOT, Porter’s Five Forces, 3C and an issue tree"
+                  "text": "Diagnosed a footwear brand's **8%** share gap in **8 NE** states via PESTEL, SWOT, Porter's Five Forces, 3C and an issue tree"
                 },
                 {
                   "text": "Strategised a **4-line** regional product architecture tilted to all-weather sports, adding an ethnic capsule made with artisans"
@@ -211,16 +211,13 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and **₹880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
+                  "text": "Sized a **₹3,600 Cr** TAM and ₹**880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
                 },
                 {
                   "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
                 },
                 {
                   "text": "Projected **4.6:1** LTV to CAC, regional revenue from **₹14 Cr-₹46 Cr** and market share from **8% to 15%** in **36 months**"
-                },
-                {
-                  "text": "Cut target lead time from **4.5** to **3 days** via a regional distribution hub, AI-led demand forecasting and route optimisation"
                 }
               ]
             }
@@ -234,6 +231,27 @@ const SAMPLE_CV = {
       "showYear": true,
       "groups": [
         {
+          "label": "Secretary\n(Marketing\nInterest Group)",
+          "bullets": [
+            {
+              "text": "Secured **₹1.2L+** in prizes & sponsorships & **12** Live projects via **B2B** negotiations, facilitated signing of **3 MoUs**",
+              "year": "2026"
+            },
+            {
+              "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
+              "year": "2026"
+            },
+            {
+              "text": "Authored **80+** page case-led **marketing compendium** on positioning, portfolio and pricing for **1000+** students",
+              "year": "2026"
+            },
+            {
+              "text": "Drove **46%** rise in **intent** applications by spearheading committee **rebranding**-name, logo, structure and website",
+              "year": "2026"
+            }
+          ]
+        },
+        {
           "label": "Class\nRepresentative\n(IIM Mumbai)",
           "bullets": [
             {
@@ -245,7 +263,7 @@ const SAMPLE_CV = {
               "year": "2026"
             },
             {
-              "text": "Strengthened issue-resolution cadence closing 100+ academic concerns under-24hr TAT via prioritised escalation",
+              "text": "Strengthened issue-resolution cadence closing 100+ academic concerns under-**24hr** TAT via prioritised escalation",
               "year": "2026"
             }
           ]
@@ -254,7 +272,7 @@ const SAMPLE_CV = {
           "label": "Project Head (Aero\nClub | IITG)",
           "bullets": [
             {
-              "text": "Mentored **8** projects with **45+** students and ensured successful demos during **TechEvince**, IITG’s flagship expo",
+              "text": "Mentored **8** **projects** with **45+ students **and ensured successful demos during TechEvince, IITG’s flagship expo",
               "year": "2021"
             },
             {
@@ -264,27 +282,6 @@ const SAMPLE_CV = {
             {
               "text": "Oversaw resource **optimization**, balancing **budget** and **assets** to meet project objectives **without** cost **overruns**",
               "year": "2021"
-            }
-          ]
-        },
-        {
-          "label": "Secretary (Marketing Interest Group)",
-          "bullets": [
-            {
-              "text": "Drove **46%** rise in **intent** applications by spearheading committee **rebranding**-name, logo, structure and website",
-              "year": "2026"
-            },
-            {
-              "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
-              "year": "2026"
-            },
-            {
-              "text": "Authored **80+** page case-led **marketing compendium** on positioning, portfolio and pricing for **1000+** students",
-              "year": "2026"
-            },
-            {
-              "text": "Secured **₹1.2L+** in prizes & sponsorships & **12** Live projects via **B2B** negotiations, facilitated signing of **3 MoUs**",
-              "year": "2026"
             }
           ]
         }
@@ -329,13 +326,8 @@ const SAMPLE_CV = {
           "label": "Academics",
           "bullets": [
             {
-              "text": "Spearheaded research on **CO₂ sequestration** with MOFs securing **AA** for pioneering **sustainability** approaches",
+              "text": "Spearheaded** **research** **on** CO₂ sequestration **with** **MOFs** **securing** AA **for** **pioneering **sustainability** approaches",
               "year": "2022"
-            },
-            {
-              "text": "Attained **AA** in **Economic Development** for policy-driven analysis of **India’s growth trajectory** (1947-2011)",
-              "year": "2021",
-              "hidden": true
             }
           ]
         },
@@ -345,27 +337,8 @@ const SAMPLE_CV = {
             {
               "text": "Successfully acquired UiPath Academic Alliance Student **Agentic Automation Associate** certification by **PwC**",
               "year": "2025"
-            },
-            {
-              "text": "Acquired certification of **Lean Six Sigma Green Belt** online from Advanced Innovation Group Pro Excellence",
-              "year": "2025",
-              "hidden": true
             }
           ]
-        },
-        {
-          "label": "Extra-Curriculars",
-          "bullets": [
-            {
-              "text": "Ranked **5th** among **125+** teams in Business Prodigy **Consulting Olympiad** demonstrating **strategic** excellence",
-              "year": "2025"
-            },
-            {
-              "text": "Delivered **40+ hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
-              "year": "2020"
-            }
-          ],
-          "hidden": true
         }
       ]
     }

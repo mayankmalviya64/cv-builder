@@ -27,6 +27,9 @@ const PAGE_WIDTH_PX = LAYOUT.pageWidthPt * PX_PER_PT;
 // Gap kept free at the bottom of every printed page. Must match the
 // padding-bottom of .cv-page in the @media print block of css/cv.css.
 const PRINT_BOTTOM_PT = 3.75;
+// Lowest our CV's last table border may end when there's a LinkedIn footer,
+// so the CV is still one page on Skynet (see updatePageFit for the numbers).
+const SKYNET_LAST_BORDER_PT = 827.9;
 // How much height one more bullet adds: a line in an internship/project box,
 // and a row in a section with a year column (see .cv-rows / .cv-row in cv.css).
 const EXP_LINE_PT = 11.25;
@@ -135,7 +138,17 @@ function updatePageFit() {
   // cv.css), so content must end by 838.5pt, like Skynet (~838.9pt). Measured:
   // a footer ending lower than this lands on page 2 when printed.
   const bottomPadding = PRINT_BOTTOM_PT * PX_PER_PT;
-  const overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
+  let overflowPx = contentBottom + bottomPadding - PAGE_HEIGHT_PX;
+  // Skynet is stricter when there's a LinkedIn footer: it always sits 8.84pt
+  // below the last table border, and must stay above ~837.5pt. Measured in our
+  // layout (which ends 0.2-0.45pt higher than Skynet's): a real one-page CV
+  // ends at 827.8pt, and a CV that spilled to page 2 on Skynet ended at
+  // 828.46pt. 827.9pt plus the 0.5px (0.375pt) tolerance below sits between.
+  const lastSection = footerEl && footerEl.previousElementSibling;
+  if (lastSection) {
+    const sectionsBottom = (lastSection.getBoundingClientRect().bottom - pageTop) / scale;
+    overflowPx = Math.max(overflowPx, sectionsBottom - SKYNET_LAST_BORDER_PT * PX_PER_PT);
+  }
 
   const marker = els.page.querySelector('.cv-pagebreak');
   const spareBox = els.page.querySelector('.cv-spare');
