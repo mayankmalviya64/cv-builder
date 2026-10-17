@@ -122,6 +122,9 @@ function updateImportPrompt() {
 
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */
 function updatePageFit() {
+  // Measure with the footer in its normal spot (undo any earlier centring).
+  const footerEl = els.page.querySelector('.cv-footer');
+  if (footerEl) footerEl.style.marginTop = '';
   // Height of the content itself (the page box is at least one A4 tall).
   const parts = els.page.querySelectorAll(':scope > :not(.cv-pagebreak):not(.cv-spare)');
   const last = parts[parts.length - 1]; // the CV's last element (skips the helpers)
@@ -160,7 +163,34 @@ function updatePageFit() {
     spareBox.style.height = `${PAGE_HEIGHT_PX - contentBottom}px`;
     spareBox.classList.toggle('full', exactSparePt < EXP_LINE_PT);
     spareBox.querySelector('span').textContent = message;
+    centerFooter(pageTop, scale);
   }
+}
+
+/**
+ * Design touch: put the LinkedIn footer in the vertical middle of the empty
+ * space between the last section and the bottom of the page.
+ * Runs only after the one-page check above, which measured the footer in its
+ * normal spot, so the check (and the page count) stays the same as Skynet's.
+ * The footer never goes below the printer's 3.75pt gap, so it can't spill
+ * onto page 2.
+ */
+function centerFooter(pageTop, scale) {
+  const footer = els.page.querySelector('.cv-footer');
+  const lastSection = footer && footer.previousElementSibling;
+  if (!lastSection) return;
+  const px = (el, side) => (el.getBoundingClientRect()[side] - pageTop) / scale;
+  const sectionsBottom = px(lastSection, 'bottom');
+  const footerHeight = px(footer, 'bottom') - px(footer, 'top');
+  const normalMargin = px(footer, 'top') - sectionsBottom;
+  // Top of the footer when it's centred in the gap down to the page edge…
+  const centredTop = (sectionsBottom + PAGE_HEIGHT_PX - footerHeight) / 2;
+  // …but its bottom must stay above the 3.75pt the printer keeps empty.
+  const lowestTop = PAGE_HEIGHT_PX - PRINT_BOTTOM_PT * PX_PER_PT - footerHeight;
+  const top = Math.min(centredTop, lowestTop);
+  // Only ever move it down (a full page keeps the normal spacing).
+  const margin = Math.max(normalMargin, top - sectionsBottom);
+  footer.style.marginTop = `${margin / PX_PER_PT}pt`;
 }
 
 /** Badge text: say plainly whether one more bullet still fits on the page. */

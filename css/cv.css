@@ -284,7 +284,9 @@
   text-align: center;
   font-size: 7.5pt;
   line-height: 7.5pt;
-  margin-top: 1.85pt;
+  margin-top: 1.85pt;          /* normal spot; js/app.js centerFooter() may move it lower */
+  position: relative;          /* draw it above the screen-only striped band */
+  z-index: 1;
 }
 .cv-footer a { color: #00f; text-decoration: none; }
 
@@ -317,7 +319,8 @@
   right: 0;
   pointer-events: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;   /* label at the top: the footer link sits in the middle */
+  padding-top: 2pt;
   justify-content: center;
   overflow: hidden;
   background:
