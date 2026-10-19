@@ -1,0 +1,36 @@
+# Publishes the site to GitHub Pages every time main changes.
+# There is no build step: the repo files are uploaded exactly as they are.
+# (The custom domain cv-builder.js.org is set in Settings → Pages, not by the CNAME file.)
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # lets us re-run a deploy by hand from the Actions tab
+
+# Pages needs these permissions to receive the upload.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; a newer push replaces a waiting one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      # Upload the whole repo (index.html is at the root).
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -20,7 +20,8 @@
 const GA_MEASUREMENT_ID = 'G-RXHE3B22RP';
 
 // Only track the live site, so local testing doesn't add fake visits.
-const ANALYTICS_ON = /\.github\.io$/.test(location.hostname) && !GA_MEASUREMENT_ID.includes('XXXX');
+// The live site is cv-builder.js.org (the old github.io address redirects there).
+const ANALYTICS_ON = /(\.github\.io|\.js\.org)$/.test(location.hostname) && !GA_MEASUREMENT_ID.includes('XXXX');
 
 // gtag() puts commands in a queue; Google's script reads that queue once it loads.
 window.dataLayer = window.dataLayer || [];
