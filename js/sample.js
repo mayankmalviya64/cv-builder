@@ -63,10 +63,10 @@ const SAMPLE_CV = {
     {
       "type": "experience",
       "title": "Summer Internship",
-      "note": "12 Weeks",
+      "note": "8 Weeks",
       "entries": [
         {
-          "org": "Motilal Oswal Financial Services Ltd.",
+          "org": "Motilal Oswal Financial Services Limited",
           "role": "Product Growth & Strategy Intern",
           "dates": "Apr'26-May'26",
           "subtitle": "Project Title: Customer Retention: Analytics, Customer Insights & User Persona Framework",
@@ -103,9 +103,9 @@ const SAMPLE_CV = {
           ]
         },
         {
-          "org": "Motilal Oswal Financial Services Limited",
-          "role": "Product Growth & Strategy Intern",
-          "dates": "Apr'26-May'26",
+          "org": "",
+          "role": "",
+          "dates": "",
           "subtitle": "Project Title: Multi-Channel Campaign-to-Revenue Attribution & Conversion Funnel Analytics",
           "duration": "",
           "groups": [
@@ -321,6 +321,10 @@ const SAMPLE_CV = {
             {
               "text": "Spearheaded** **research** **on** CO₂ sequestration **with** **MOFs** **securing** AA **for** **pioneering **sustainability** approaches",
               "year": "2022"
+            },
+            {
+              "text": "Attained** AA **in** Economic Development **for** **policy-driven** **analysis** **of **India’s growth trajectory **(1947-2011)",
+              "year": "2021"
             }
           ]
         },
@@ -343,6 +347,11 @@ const SAMPLE_CV = {
             {
               "text": "Delivered **40+** **hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
               "year": "2020"
+            },
+            {
+              "text": "Volunteered** **for** NCC **fostering** **discipline,** leadership **&** team coordination **via** **field** **drills** **and **training **camps",
+              "year": "2020",
+              "hidden": true
             }
           ]
         }
