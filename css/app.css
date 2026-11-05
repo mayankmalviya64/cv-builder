@@ -126,16 +126,19 @@ button.stat:disabled { cursor: default; opacity: 0.6; }
 .preview-toolbar {
   position: sticky; top: 0; z-index: 2;
   width: 100%;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  /* One line: legend on the left, page badge on the right (never wraps) */
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: nowrap;
   padding: 10px 0;
   background: var(--bg);
   font-size: 12px; color: var(--muted);
 }
-.legend { display: flex; gap: 12px; flex-wrap: wrap; }
+.legend { display: flex; gap: 12px; flex-wrap: nowrap; flex: none; white-space: nowrap; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .dot.brim { background: #a7f3d0; } .dot.under { background: #fde68a; } .dot.over { background: #fecaca; }
-.page-status { font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+/* The badge may shrink: on a narrow screen its text ends in "…" (hover shows all of it) */
+.page-status { font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-status.good { color: var(--brim); background: var(--brim-bg); }
 .page-status.bad { color: var(--over); background: var(--over-bg); }
 
@@ -304,6 +307,9 @@ button.stat:disabled { cursor: default; opacity: 0.6; }
 }
 @media (max-width: 560px) {
   .editor { padding: 10px; }
+  /* Phones: too narrow for one line, so the badge goes under the legend */
+  .preview-toolbar, .legend { flex-wrap: wrap; }
+  .legend { flex: 1 1 auto; white-space: normal; }
   .grid-3 { grid-template-columns: 1fr; }
   .acad-row { grid-template-columns: 1fr 1fr; }
   .acad-row .row-actions { grid-column: span 2; justify-content: flex-end; }
@@ -316,7 +322,8 @@ button.stat:disabled { cursor: default; opacity: 0.6; }
   .layout { display: block; height: auto; }
   .preview-pane { display: block; padding: 0; overflow: visible; }
   .cv-scaler { width: auto !important; height: auto !important; overflow: visible; }
-  .cv-scaler .cv-page { transform: none !important; box-shadow: none; }
+  /* zoom: 1 drops the screen-only "pixel fix" (js/app.js), so the PDF is true size */
+  .cv-scaler .cv-page { transform: none !important; zoom: 1 !important; box-shadow: none; }
 }
 .small-note { margin: 0; font-size: 12px; }
 

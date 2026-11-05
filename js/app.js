@@ -123,16 +123,45 @@ function updateImportPrompt() {
   }
 }
 
+/*
+ * ---------- Keeping the on-screen layout identical to the printed page ----------
+ * The problem: browsers round every border to WHOLE screen pixels. Our table
+ * lines are 0.75pt = 1 CSS pixel. That is a whole number of screen pixels only
+ * when "screen pixels per CSS pixel" (devicePixelRatio) is a whole number:
+ *   - Mac at 100% zoom: 2 → fine.        - Windows at 100% scaling: 1 → fine.
+ *   - Windows laptops at 125% / 150% / 175% display scaling: 1.25 / 1.5 / 1.75
+ *   - any browser zoom like 80% or 110% (Mac 80% = 1.6)
+ * In those cases each line is rounded DOWN (1.25 → 1 screen pixel = 0.8 CSS px),
+ * so every CV row looks ~0.28pt shorter on screen than it prints: ~8pt over a
+ * page. The badge then promised space that isn't there, and the centred footer
+ * got pushed onto page 2 of the PDF (seen 2026-11-05 with Chrome at 80% zoom).
+ *
+ * The fix: give the preview page an extra CSS zoom ("pixel fix") that makes the
+ * ratio whole again, e.g. 1.25 × 1.6 = 2, so every line is exactly 2 screen
+ * pixels and nothing gets rounded. The fit-to-pane scale (fitPreview) shrinks
+ * it back by the same amount, so it looks the same size. Printing ignores this
+ * zoom (cv.css @media print), so the PDF is untouched.
+ */
+let pixelFix = 1;
+
+/** The extra zoom that turns devicePixelRatio into a whole number (1 = none needed). */
+function neededPixelFix() {
+  const ratio = window.devicePixelRatio || 1;
+  if (Math.abs(ratio - Math.round(ratio)) < 0.01) return 1; // already whole
+  return Math.ceil(ratio) / ratio;                          // e.g. 2 / 1.25 = 1.6
+}
+
+/** Apply the pixel fix and the fit-to-pane scale together (on-screen size = currentScale). */
+function applyPreviewZoom() {
+  els.page.style.zoom = pixelFix === 1 ? '' : String(pixelFix);
+  els.page.style.transform = `scale(${currentScale / pixelFix})`;
+}
+
 /**
- * Is the browser zoom bending our measurements?
- * Why: at a zoom other than 100% (say 80%), Chrome rounds every 0.75pt table
- * border DOWN to whole screen pixels. Each CV row then looks ~0.28pt shorter on
- * screen than it really prints, about 8pt over a full page. So the badge would
- * promise space that isn't there, and the centred footer would be pushed onto
- * page 2 of the PDF (seen 2026-11-05: Chrome at 80% zoom → 2 pages, Safari → 1).
- * How: a hidden strip of 20 rows, each 11.25pt tall with a 0.75pt top border
- * (like a CV row), is exactly 20 × 16px = 320px at true size. If it measures
- * anything else, the screen layout no longer matches the printed page.
+ * Safety net: does a strip shaped like CV rows measure its true size?
+ * 20 rows of 11.25pt with a 0.75pt top line = exactly 20 × 16 = 320 CSS px.
+ * The strip gets the same pixel fix as the page, so it tells us whether the
+ * fix worked. Returns true when the screen layout still differs from print.
  */
 let zoomProbe = null;
 function zoomDistortsLayout() {
@@ -144,12 +173,30 @@ function zoomDistortsLayout() {
     zoomProbe.innerHTML = '<div style="box-sizing:content-box; height:11.25pt; border-top:0.75pt solid #000"></div>'.repeat(20);
     document.body.appendChild(zoomProbe);
   }
+  zoomProbe.style.zoom = pixelFix === 1 ? '' : String(pixelFix);
+  // On-screen height includes the zoom, so the true size is 320 × pixelFix.
   const heightPx = zoomProbe.getBoundingClientRect().height;
-  return Math.abs(heightPx - 320) > 0.5; // allow tiny sub-pixel noise
+  return Math.abs(heightPx - 320 * pixelFix) > 0.5 * pixelFix; // allow tiny sub-pixel noise
+}
+
+/**
+ * Pick the pixel fix for the current screen/zoom, and check it really works.
+ * If a browser handles CSS zoom differently and the strip still measures
+ * wrong, drop the fix (plain layout) and let updatePageFit show the warning.
+ */
+function updatePixelFix() {
+  pixelFix = neededPixelFix();
+  applyPreviewZoom();
+  if (pixelFix !== 1 && zoomDistortsLayout()) {
+    pixelFix = 1;
+    applyPreviewZoom();
+  }
 }
 
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */
 function updatePageFit() {
+  // First make the screen layout match the printed page (see "pixel fix" above).
+  updatePixelFix();
   // Measure with the footer in its normal spot (undo any earlier centring).
   const footerEl = els.page.querySelector('.cv-footer');
   if (footerEl) footerEl.style.marginTop = '';
@@ -211,7 +258,28 @@ function updatePageFit() {
   if (zoomDistortsLayout()) {
     if (footerEl) footerEl.style.marginTop = '';
     els.pageStatus.className = 'page-status bad';
-    els.pageStatus.textContent = 'Browser zoom isn’t 100%, so this page check is off. Press ⌘0 (Mac) or Ctrl+0 (Windows)';
+    els.pageStatus.textContent = 'Zoom isn’t 100%, page check is off: press ⌘0 / Ctrl+0';
+  }
+  fitBadgeText();
+}
+
+/**
+ * Keep the badge on the same line as the colour legend.
+ * If the full message doesn't fit (small laptop screens, e.g. Windows at 125%),
+ * show a shorter version: first without the "(…)" part, then only the part
+ * before " · ". Hovering the badge always shows the full message.
+ */
+function fitBadgeText() {
+  const badge = els.pageStatus;
+  const full = badge.textContent;
+  badge.title = full;
+  const shorter = [
+    full.replace(/\s*\(.*\)\s*$/, ''), // "Page full · 5pt left (another …)" → "Page full · 5pt left"
+    full.split(' · ')[0].split(' (')[0], // → "Page full"
+  ];
+  for (const text of shorter) {
+    if (badge.scrollWidth <= badge.clientWidth) break; // it fits now
+    badge.textContent = text;
   }
 }
 
@@ -301,9 +369,10 @@ let currentScale = 1;
 function fitPreview() {
   const available = els.pane.clientWidth - 32; // 16px breathing room each side
   currentScale = Math.min(1.25, Math.max(0.3, available / PAGE_WIDTH_PX));
-  els.page.style.transform = `scale(${currentScale})`;
+  applyPreviewZoom(); // the scale, plus the pixel fix if this screen needs one
   els.scaler.style.width = `${PAGE_WIDTH_PX * currentScale}px`;
-  els.scaler.style.height = `${els.page.offsetHeight * currentScale}px`;
+  // On-screen height of the scaled page (already includes the pixel fix).
+  els.scaler.style.height = `${els.page.getBoundingClientRect().height}px`;
 }
 
 // ---------- saving ----------
