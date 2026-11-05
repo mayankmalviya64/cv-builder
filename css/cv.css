@@ -288,6 +288,10 @@
 .cv-ln {
   display: none;                       /* shown only in @media print (below) */
   position: absolute;
+  z-index: 1;                          /* paint AFTER every grey cell. Without this, the next block's
+                                          grey box is drawn later and, on low-res screens, its edge pixel
+                                          covers half of this line, so the line fades into the grey
+                                          (Skynet also draws its lines last) */
   overflow: visible;
   pointer-events: none;
 }
