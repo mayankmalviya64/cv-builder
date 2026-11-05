@@ -278,6 +278,31 @@
   background: #000;
 }
 
+/* ---- Print-only lines (stroked copies of the borders) ----
+   Why: printed CSS borders become thin filled rectangles, which PDF viewers on
+   normal Windows/Android screens can blur away or hide until you zoom in.
+   SVG lines print as strokes (like Skynet's), which viewers always show.
+   Each .cv-ln sits exactly on top of one border (see printLine in js/preview.js).
+   Hidden on screen; absolutely positioned, so they never move anything. */
+.cv-sec-title, .cv-entry-lines, .cv-acad-wrap { position: relative; }   /* .cv-group is already relative */
+.cv-ln {
+  display: none;                       /* shown only in @media print (below) */
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+/* Horizontal lines run across the whole box, including the box's side lines */
+.cv-ln-top, .cv-ln-bottom { left: -0.75pt; width: 551.5pt; height: 0.75pt; }
+.cv-ln-top    { top: -0.75pt; }        /* the box's top line, above the grey title */
+.cv-ln-bottom { top: 100%; }           /* the line under this block (its border-bottom) */
+/* Vertical lines cover this block plus the lines above and below it */
+.cv-ln-left, .cv-ln-right, .cv-ln-cat, .cv-ln-year { top: -0.75pt; width: 0.75pt; height: calc(100% + 1.5pt); }
+.cv-ln-left  { left: -0.75pt; }        /* the box's left side */
+.cv-ln-right { right: -0.75pt; }       /* the box's right side */
+.cv-ln-cat   { left: 82.125pt; }       /* the line right of the grey category cell */
+.cv-ln-year  { right: 31.5pt; }        /* the year column's line (same spot as .cv-group.has-year::after) */
+.cv-ln-table { left: -0.75pt; top: 0; width: 551.5pt; }   /* height is set inline (rows × 12pt) */
+
 /* ---- Footer link ---- */
 .cv-footer {
   width: 551.5pt;
@@ -373,6 +398,7 @@
   /* Page 1 starts lower (11.74pt in all): 3pt above + 8.74pt here */
   .cv-page > :first-child { margin-top: 8.74pt; }
   .cv-pagebreak, .cv-spare { display: none; }
+  .cv-ln { display: block; }           /* stroked table lines: see "Print-only lines" above */
   .hl .cv-bullet .cv-text { background: none !important; }
   .cv-bullet[data-path]:hover .cv-text { outline: none; }
   .cv-page .cv-active { outline: none; box-shadow: none; background: none; }
