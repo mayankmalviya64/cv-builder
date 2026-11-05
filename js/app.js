@@ -123,6 +123,31 @@ function updateImportPrompt() {
   }
 }
 
+/**
+ * Is the browser zoom bending our measurements?
+ * Why: at a zoom other than 100% (say 80%), Chrome rounds every 0.75pt table
+ * border DOWN to whole screen pixels. Each CV row then looks ~0.28pt shorter on
+ * screen than it really prints, about 8pt over a full page. So the badge would
+ * promise space that isn't there, and the centred footer would be pushed onto
+ * page 2 of the PDF (seen 2026-11-05: Chrome at 80% zoom → 2 pages, Safari → 1).
+ * How: a hidden strip of 20 rows, each 11.25pt tall with a 0.75pt top border
+ * (like a CV row), is exactly 20 × 16px = 320px at true size. If it measures
+ * anything else, the screen layout no longer matches the printed page.
+ */
+let zoomProbe = null;
+function zoomDistortsLayout() {
+  if (!zoomProbe) {
+    zoomProbe = document.createElement('div');
+    zoomProbe.className = 'no-print';
+    zoomProbe.setAttribute('aria-hidden', 'true');
+    zoomProbe.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden;';
+    zoomProbe.innerHTML = '<div style="box-sizing:content-box; height:11.25pt; border-top:0.75pt solid #000"></div>'.repeat(20);
+    document.body.appendChild(zoomProbe);
+  }
+  const heightPx = zoomProbe.getBoundingClientRect().height;
+  return Math.abs(heightPx - 320) > 0.5; // allow tiny sub-pixel noise
+}
+
 /** Does everything fit on one A4 page? Show a red line where the page ends if not. */
 function updatePageFit() {
   // Measure with the footer in its normal spot (undo any earlier centring).
@@ -178,6 +203,15 @@ function updatePageFit() {
     // The message itself shows only in the badge above the preview, so nothing
     // is written over the LinkedIn footer that sits inside this band.
     centerFooter(pageTop, scale);
+  }
+
+  // Browser zoom isn't 100%: the numbers above came from a squashed layout.
+  // Say so instead of showing them, and keep the footer at Skynet's normal
+  // spacing (no centring), so the PDF can't spill onto page 2 because of it.
+  if (zoomDistortsLayout()) {
+    if (footerEl) footerEl.style.marginTop = '';
+    els.pageStatus.className = 'page-status bad';
+    els.pageStatus.textContent = 'Browser zoom isn’t 100%, so this page check is off. Press ⌘0 (Mac) or Ctrl+0 (Windows)';
   }
 }
 
@@ -414,6 +448,8 @@ window.addEventListener('beforeprint', () => {
     ...(activeSinceImport !== null && { seconds_since_import: activeSinceImport }),
   });
   printViaButton = false;
+  // Re-measure right before printing, so the footer spacing is never stale.
+  updatePageFit();
   // The browser names the saved PDF after the page title, so we swap the
   // title to e.g. "Mayank's CV" while the dialog is open.
   document.title = cvFileName(cv);
@@ -499,7 +535,9 @@ els.page.addEventListener('click', event => {
   if (bullet) Editor.focusBullet(bullet.dataset.path);
 });
 
-window.addEventListener('resize', fitPreview);
+// Changing the browser zoom also fires 'resize'. Re-check the page then too,
+// so the badge and the footer spacing match the new zoom right away.
+window.addEventListener('resize', () => { updatePageFit(); fitPreview(); });
 // Re-check the page height once images (the logo) finish loading.
 els.page.addEventListener('load', () => { updatePageFit(); fitPreview(); }, true);
 
