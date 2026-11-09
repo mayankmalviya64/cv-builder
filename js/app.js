@@ -505,10 +505,59 @@ function importSummary(imported, source) {
 // Download PDF = the browser's print dialog. We count it on 'beforeprint', so
 // ⌘P / Ctrl+P count too; `via` tells the button and the shortcut apart.
 let printViaButton = false;
-document.getElementById('btn-print').addEventListener('click', () => {
-  printViaButton = true;
-  window.print();
-});
+
+// ---------- Print help (shown before the print dialog) ----------
+// A web page can't choose the print dialog's settings. Chrome / Edge "Save as
+// PDF" follow our A4 + no-margin rule, but printers, "Microsoft Print to PDF",
+// Safari and Firefox often use their own defaults (Letter paper, Default
+// margins), which shrink or shift the CV. So the button first shows the exact
+// settings to pick, with where to find them in this browser.
+const PrintHelp = (() => {
+  const SKIP_KEY = 'cv-builder:skip-print-help'; // remembered when "Don't show again" is ticked
+  const box = document.getElementById('print-help');
+  const skip = document.getElementById('print-help-skip');
+
+  // Where the settings live, by browser (Edge and Chrome share one dialog).
+  const ua = navigator.userAgent;
+  const where =
+    /Firefox\//.test(ua) ? 'Firefox: Destination “Save to PDF”, then open “More settings” for Paper size, Margins and Scale.'
+    : /Edg\//.test(ua) ? 'Edge: Printer “Save as PDF” (not “Microsoft Print to PDF”), then “More settings”.'
+    : /Chrome\//.test(ua) ? 'Chrome: Destination “Save as PDF” (not a printer), then “More settings”.'
+    : /Safari\//.test(ua) ? 'Safari: click “Show Details”, set Paper Size to A4 and Scale to 100%, then “PDF” → “Save as PDF”.'
+    : 'Look for Paper size, Margins and Scale under “More settings” in the print window.';
+  document.getElementById('print-help-where').textContent = where;
+
+  function skipped() {
+    try { return localStorage.getItem(SKIP_KEY) === '1'; } catch { return false; }
+  }
+
+  function open() {
+    if (skipped()) { printNow(); return; }
+    box.hidden = false;
+    document.getElementById('print-help-go').focus();
+  }
+
+  function close() { box.hidden = true; }
+
+  function printNow() {
+    printViaButton = true;
+    window.print();
+  }
+
+  document.getElementById('print-help-go').addEventListener('click', () => {
+    if (skip.checked) { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* storage blocked: just ask again next time */ } }
+    close();
+    // Let the card disappear first, so it never shows up in the print preview.
+    setTimeout(printNow, 50);
+  });
+  document.getElementById('print-help-cancel').addEventListener('click', close);
+  box.addEventListener('click', event => { if (event.target === box) close(); }); // click outside the card
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !box.hidden) close(); });
+
+  return { open };
+})();
+
+document.getElementById('btn-print').addEventListener('click', () => PrintHelp.open());
 window.addEventListener('beforeprint', () => {
   track('download_pdf', {
     via: printViaButton ? 'button' : 'shortcut',
@@ -574,20 +623,104 @@ els.importBtn.addEventListener('keydown', event => {
     document.getElementById('import-file').click();
   }
 });
+// ---------- Import overlay ----------
+// A centred card over the whole page while a CV is imported, so people can
+// see something is happening (the small top banner was easy to miss).
+//   start()   → "Importing your CV…" with a looping animation + changing steps
+//   done(n,b) → green tick, confetti, and how many bullets already fit perfectly
+//   close()   → hide it (also on click, Esc, or automatically after a few seconds)
+const ImportOverlay = (() => {
+  const box = document.getElementById('import-overlay');
+  const title = document.getElementById('import-title');
+  const step = document.getElementById('import-step');
+  const confetti = document.getElementById('import-confetti');
+  const STEPS = ['Reading the file', 'Finding your sections', 'Measuring every bullet', 'Fitting it to the page'];
+  const MIN_MS = 1200;   // show the "importing" animation at least this long
+  const DONE_MS = 3200;  // the "done" card closes by itself after this long
+  let stepTimer = null;
+  let closeTimer = null;
+
+  function start() {
+    clearTimeout(closeTimer);
+    box.classList.remove('done');
+    confetti.innerHTML = '';
+    title.textContent = 'Importing your CV…';
+    let i = 0;
+    step.textContent = STEPS[0];
+    clearInterval(stepTimer);
+    // Move to the next step message every 0.8s (stays on the last one).
+    stepTimer = setInterval(() => { i = Math.min(i + 1, STEPS.length - 1); step.textContent = STEPS[i]; }, 800);
+    box.hidden = false;
+  }
+
+  const minTime = () => new Promise(resolve => setTimeout(resolve, MIN_MS));
+
+  function done(sections, bullets) {
+    clearInterval(stepTimer);
+    box.classList.add('done');
+    title.textContent = 'Your CV is in!';
+    step.textContent = `${sections} sections · ${bullets} bullets`;
+    // The fit numbers are worked out when the preview draws, so read them a
+    // moment later and add the fun part: how many bullets are already perfect.
+    setTimeout(() => {
+      if (box.hidden || fitNow.perfect === undefined) return;
+      step.textContent = `${sections} sections · ${bullets} bullets · ${fitNow.perfect} already fit perfectly`;
+    }, 150);
+    burst();
+    closeTimer = setTimeout(close, DONE_MS);
+  }
+
+  /** Shoot 28 coloured strips out of the card in random directions. */
+  function burst() {
+    const colours = ['#059669', '#10b981', '#0ea5e9', '#f59e0b', '#0f172a'];
+    confetti.innerHTML = '';
+    for (let n = 0; n < 28; n++) {
+      const strip = document.createElement('i');
+      const angle = Math.random() * Math.PI * 2;      // which way it flies
+      const distance = 110 + Math.random() * 120;     // how far (px)
+      strip.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
+      strip.style.setProperty('--y', `${Math.sin(angle) * distance}px`);
+      strip.style.setProperty('--r', `${Math.random() * 720 - 360}deg`);
+      strip.style.background = colours[n % colours.length];
+      strip.style.animationDelay = `${Math.random() * 0.12}s`;
+      confetti.appendChild(strip);
+    }
+  }
+
+  function close() {
+    clearInterval(stepTimer);
+    clearTimeout(closeTimer);
+    box.hidden = true;
+  }
+
+  // Click anywhere or press Esc to close the "done" card early.
+  box.addEventListener('click', () => { if (box.classList.contains('done')) close(); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !box.hidden && box.classList.contains('done')) close();
+  });
+
+  return { start, minTime, done, close };
+})();
+
 document.getElementById('import-file').addEventListener('change', async event => {
   const file = event.target.files[0];
   event.target.value = ''; // allow picking the same file again later
   if (!file) return;
   showBanner(`Reading ${file.name}…`, 'info');
+  ImportOverlay.start();
   try {
-    const { cv: imported, source } = await importCvFile(file, cv);
+    // Wait for the import AND a short minimum time, so the animation never
+    // just flickers on fast imports.
+    const [{ cv: imported, source }] = await Promise.all([importCvFile(file, cv), ImportOverlay.minTime()]);
     replaceCv(imported);
     showBanner(importSummary(imported, source), 'info');
     let bullets = 0;
     forEachBullet(imported, () => { bullets++; });
+    ImportOverlay.done(imported.sections.length, bullets);
     track('cv_import', { source, sections: imported.sections.length, bullets });
     markImport(); // start the "how long until they download?" stopwatch
   } catch (err) {
+    ImportOverlay.close(); // the warning banner below explains what went wrong
     showBanner(err.message || 'Couldn’t import that file.', 'warn');
     // Only the file's extension is sent, never its name.
     const ext = (file.name.match(/\.(\w+)$/) || [])[1] || 'unknown';

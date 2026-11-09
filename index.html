@@ -8,14 +8,14 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f172a'/><rect x='8' y='9' width='16' height='2.4' fill='white'/><rect x='8' y='15' width='16' height='2.4' fill='%2310b981'/><rect x='8' y='21' width='11' height='2.4' fill='white'/></svg>">
 
   <!-- Fonts: EB Garamond for the CV (hosted here, see css/cv.css), Inter for the app controls -->
-  <link rel="preload" href="fonts/EBGaramond-Regular.woff2?v=20261105d" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/EBGaramond-Bold.woff2?v=20261105d" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/EBGaramond-Regular.woff2?v=20261110a" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/EBGaramond-Bold.woff2?v=20261110a" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/app.css?v=20261105d">
-  <link rel="stylesheet" href="css/cv.css?v=20261105d">
+  <link rel="stylesheet" href="css/app.css?v=20261110a">
+  <link rel="stylesheet" href="css/cv.css?v=20261110a">
 </head>
 <body>
   <!-- ===== Top bar: title, live stats and main actions ===== -->
@@ -48,7 +48,7 @@
       </span>
       <button class="btn" id="btn-export" title="Save your CV data as a .json file">Export</button>
       <button class="btn" id="btn-reset" title="Replace everything with the sample CV">Reset</button>
-      <button class="btn primary" id="btn-print" title="Opens the print dialog — choose “Save as PDF”">Download PDF</button>
+      <button class="btn primary" id="btn-print" title="Opens the print dialog — choose “Save as PDF”, Paper A4, Margins None, Scale 100%">Download PDF</button>
       <!-- Share: opens the phone's share sheet, or copies the link on a laptop -->
       <button class="btn share" id="btn-share" title="Share with friends" aria-label="Share with friends">↗ Share</button>
     </div>
@@ -83,18 +83,55 @@
     </section>
   </main>
 
+  <!-- Print help: shown when "Download PDF" is clicked, before the print
+       dialog opens. Browsers ignore our A4 page setting when printing to a
+       printer / "Microsoft Print to PDF", or in Safari / Firefox, so we show
+       the exact settings to pick (driven by PrintHelp in js/app.js). -->
+  <div class="import-overlay no-print" id="print-help" hidden>
+    <div class="import-card print-card" role="dialog" aria-modal="true" aria-labelledby="print-help-title">
+      <h2 id="print-help-title">Before you save, check 4 settings</h2>
+      <p>In the print window that opens next, please pick:</p>
+      <ul class="print-settings">
+        <li><span>Destination</span><b>Save as PDF</b></li>
+        <li><span>Paper size</span><b>A4</b></li>
+        <li><span>Margins</span><b>None</b></li>
+        <li><span>Scale</span><b>100% (Default)</b></li>
+      </ul>
+      <p class="print-where" id="print-help-where"></p>
+      <label class="print-skip"><input type="checkbox" id="print-help-skip"> Don’t show this again</label>
+      <div class="print-actions">
+        <button type="button" class="btn" id="print-help-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="print-help-go">Open print window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import overlay: a centred "Importing your CV…" animation while a file is
+       read, then a short "done" moment (driven by ImportOverlay in js/app.js). -->
+  <div class="import-overlay no-print" id="import-overlay" hidden>
+    <div class="import-card" role="status" aria-live="polite">
+      <div class="import-anim" aria-hidden="true">
+        <div class="import-paper"><i></i><i></i><i></i><i></i><i></i><span class="import-scan"></span></div>
+        <div class="import-tick">✓</div>
+      </div>
+      <h2 id="import-title">Importing your CV…</h2>
+      <p id="import-step">Reading the file</p>
+      <div class="import-confetti" id="import-confetti" aria-hidden="true"></div>
+    </div>
+  </div>
+
   <!-- Scripts: order matters (each file uses the ones above it).
        ?v=… is a version tag: change it on every release so browsers never mix
        new and cached old files (that mix broke the layout once). -->
-  <script src="js/analytics.js?v=20261105d"></script>
-  <script src="js/metrics.js?v=20261105d"></script>
-  <script src="js/measure.js?v=20261105d"></script>
-  <script src="js/sample.js?v=20261105d"></script>
-  <script src="js/preview.js?v=20261105d"></script>
-  <script src="js/import-pdf.js?v=20261105d"></script>
-  <script src="js/import-word.js?v=20261105d"></script>
-  <script src="js/store.js?v=20261105d"></script>
-  <script src="js/editor.js?v=20261105d"></script>
-  <script src="js/app.js?v=20261105d"></script>
+  <script src="js/analytics.js?v=20261110a"></script>
+  <script src="js/metrics.js?v=20261110a"></script>
+  <script src="js/measure.js?v=20261110a"></script>
+  <script src="js/sample.js?v=20261110a"></script>
+  <script src="js/preview.js?v=20261110a"></script>
+  <script src="js/import-pdf.js?v=20261110a"></script>
+  <script src="js/import-word.js?v=20261110a"></script>
+  <script src="js/store.js?v=20261110a"></script>
+  <script src="js/editor.js?v=20261110a"></script>
+  <script src="js/app.js?v=20261110a"></script>
 </body>
 </html>
