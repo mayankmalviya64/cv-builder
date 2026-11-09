@@ -149,24 +149,21 @@ const SAMPLE_CV = {
         {
           "org": "Indian Institute of Management Mumbai",
           "role": "",
-          "dates": "Aug'26-Aug'26",
-          "subtitle": "Project Title: High Customer DSAT Scores with Web Based Digital Services",
-          "duration": "3 Weeks",
+          "dates": "Oct'26-Oct'26",
+          "subtitle": "Project Title: Drishti AI: Multi-Agent Digital Ad-Campaign Manager",
+          "duration": "2 Weeks",
           "groups": [
             {
               "label": "Project Details",
               "bullets": [
                 {
-                  "text": "Diagnosed an **8 month **contractual DSAT across **325** agent and ticket records using Anova, Cramer's V and Tukey HSD"
+                  "text": "Mapped a **7**-stage **D2C** ad journey across **3** personas, surfacing **5** pain points, turned them into a **MECE** feature roadmap"
                 },
                 {
-                  "text": "Led a **DMAIC** root cause study via Fishbone, **5 Whys, FMEA, Pareto, I-MR **capability, sizing the baseline at **0.9 sigma**"
+                  "text": "Architected a** 6-agent AI **system with guardrails of tiered autonomy, a **data-trust gate**, shock filter & **human approvals**"
                 },
                 {
-                  "text": "Quantified Cost of Poor Quality at **USD 4.58M** annually and built a **3-year** business case for a **USD 2.57M** programme"
-                },
-                {
-                  "text": "Built & deployed a **9 Module** Interactive DSAT simulator on GitHubPages with live recomputation of all scenario levers"
+                  "text": "Planned a** phased rollout **from read-only data to **shadow** mode to a** brand pilot**, with an** 8-week holdout **to prove lift"
                 }
               ]
             },
@@ -174,10 +171,13 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Established **contact count** as the driver of **88%** of satisfaction variance and support tenure as a variable misdirecting plans"
+                  "text": "Stress-tested agents across** 24 simulated scenarios **on** 3 **brands and** shock** filter flagged all** 9 market-wide disruptions**"
                 },
                 {
-                  "text": "Derived a transfer function turning lagging DSAT into a steerable **81 to 88% **FCR target via **7 initiatives** & an SPC plan"
+                  "text": "Routed high-impact **AI actions** to **4** role-based tiers via **Telegram** & **Gmail**, logging every approval and undo for **audits**"
+                },
+                {
+                  "text": "Mapped** 6 launch risks**, including overspend, **bad data** and DPDP Act** privacy **safeguards like **spend caps** & trust gates"
                 }
               ]
             }
@@ -200,9 +200,6 @@ const SAMPLE_CV = {
                   "text": "Strategised a **4-line** regional product architecture tilted to all-weather sports, adding an ethnic capsule made with artisans"
                 },
                 {
-                  "text": "Forecasted a **3-year** financial model for a **₹24 Crore** self-funded regional expansion, with **₹165** CAC and **₹1,822** LTV"
-                },
-                {
                   "text": "Formulated a **3-phase**, gate driven **GTM** and resilience plan with a **7 risk** mitigation matrix and capital light fallback plan"
                 }
               ]
@@ -211,10 +208,10 @@ const SAMPLE_CV = {
               "label": "Achievements",
               "bullets": [
                 {
-                  "text": "Sized a **₹3,600 Cr** TAM and ₹**880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
+                  "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
                 },
                 {
-                  "text": "Designed **55:38:7** value, mid & premium tier pricing mix to penetrate **40%** of unorganised market across Northeast India"
+                  "text": "Sized a **₹3,600 Cr** TAM and ₹**880 Cr** SAM, benchmarked **5 KPIs** isolating coverage, logistics & localisation constraint"
                 }
               ]
             }
@@ -235,11 +232,11 @@ const SAMPLE_CV = {
               "year": "2026"
             },
             {
-              "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
+              "text": "Drove **46%** rise in **intent** applications by spearheading committee **rebranding**-name, logo, structure and website",
               "year": "2026"
             },
             {
-              "text": "Drove **46%** rise in **intent** applications by spearheading committee **rebranding**-name, logo, structure and website",
+              "text": "Hosted **P&G-Meta** UGC workshop, Starbucks & Adobe leadership talk & Unstop contest reaching **50K+** views",
               "year": "2026"
             }
           ]
@@ -345,13 +342,12 @@ const SAMPLE_CV = {
           "label": "Extra-Curriculars",
           "bullets": [
             {
-              "text": "Delivered **40+** **hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
-              "year": "2020"
+              "text": "Ranked** 5th **among** 125+ **teams** **in** **Business** **Prodigy** Consulting Olympiad **demonstrating** strategic **excellence",
+              "year": "2025"
             },
             {
-              "text": "Volunteered** **for** NCC **fostering** **discipline,** leadership **&** team coordination **via** **field** **drills** **and **training **camps",
-              "year": "2020",
-              "hidden": true
+              "text": "Delivered **40+** **hrs** teaching to **100+** rural kids with DISHA IITG imbuing conceptual clarity & **self-confidence**",
+              "year": "2020"
             }
           ]
         }
